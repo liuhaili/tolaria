@@ -134,7 +134,7 @@ function knownFrontmatterUpdates(value: FrontmatterValue | undefined): Record<Fr
 function deleteEntryPatch({ key, lookupKey, systemMetadataKey }: FrontmatterPatchInput): EntryPatchResult {
   const relationshipPatch = systemMetadataKey ? null : singleEntryRecord({ key, value: null })
   const hasKnownDelete = Object.hasOwn(ENTRY_DELETE_MAP, lookupKey)
-  const propertiesPatch = !systemMetadataKey && !hasKnownDelete ? singleEntryRecord({ key, value: null }) : null
+  const propertiesPatch = key === '_parent_note' || (!systemMetadataKey && !hasKnownDelete) ? singleEntryRecord({ key, value: null }) : null
   return {
     patch: (Reflect.get(ENTRY_DELETE_MAP, lookupKey) as Partial<VaultEntry> | undefined) ?? {},
     relationshipPatch,
@@ -158,6 +158,8 @@ function propertiesUpdatePatch({
   value,
 }: FrontmatterPatchInput): PropertiesPatch | null {
   const knownUpdates = knownFrontmatterUpdates(value)
+  // Internal hierarchy metadata is hidden from property UI, but needed by the live tree.
+  if (key === '_parent_note') return value == null ? null : singleEntryRecord({ key, value: propertyValue(value) })
   if (systemMetadataKey || Object.hasOwn(knownUpdates, lookupKey) || value == null) return null
   return singleEntryRecord({ key, value: propertyValue(value) })
 }

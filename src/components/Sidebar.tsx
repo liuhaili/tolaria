@@ -31,7 +31,7 @@ interface SidebarProps {
   onSelect: (selection: SidebarSelection) => void
   onSelectNote?: (entry: VaultEntry) => void
   onCreateNote?: () => void
-  onCreateDiagram?: (title: string) => Promise<void>
+  onSetNoteEmoji?: (note: VaultEntry, emoji: string) => Promise<void>
   onMoveNoteInTree?: (note: VaultEntry, parent: VaultEntry | null) => void | Promise<void>
   onCreateType?: (type: string) => void
   onCreateNewType?: () => void
@@ -82,7 +82,7 @@ interface SidebarNavigationProps
   | 'entries'
   | 'onSelectNote'
   | 'onCreateNote'
-  | 'onCreateDiagram'
+  | 'onSetNoteEmoji'
   | 'onMoveNoteInTree'
   | 'selection'
   | 'onSelect'
@@ -187,7 +187,7 @@ type SidebarFoldersNavigationProps = Pick<
   | 'entries'
   | 'onSelectNote'
   | 'onCreateNote'
-  | 'onCreateDiagram'
+  | 'onSetNoteEmoji'
   | 'onMoveNoteInTree'
   | 'folders'
   | 'selection'
@@ -351,9 +351,8 @@ function SidebarFoldersNavigation(options: SidebarFoldersNavigationProps) {
     entries,
     onSelectNote,
     onCreateNote,
-    onCreateDiagram,
+    onSetNoteEmoji,
     onMoveNoteInTree,
-    vaultRootPath,
     groupCollapsed,
     toggleGroup,
     locale,
@@ -370,7 +369,7 @@ function SidebarFoldersNavigation(options: SidebarFoldersNavigationProps) {
   }
 
   return (
-    <NoteTree entries={entries ?? []} vaultRootPath={vaultRootPath} onCreateNote={onCreateNote} onCreateDiagram={onCreateDiagram} onSelectNote={onSelectNote} onMoveNote={onMoveNoteInTree} />
+    <NoteTree entries={entries ?? []} onCreateNote={onCreateNote} onSetNoteEmoji={onSetNoteEmoji} onSelectNote={onSelectNote} onMoveNote={onMoveNoteInTree} />
   )
 }
 
@@ -469,7 +468,7 @@ function SidebarNavigation(props: SidebarNavigationProps) {
         onSelect={props.onSelect}
         onSelectNote={props.onSelectNote}
         onCreateNote={props.onCreateNote}
-        onCreateDiagram={props.onCreateDiagram}
+        onSetNoteEmoji={props.onSetNoteEmoji}
         onMoveNoteInTree={props.onMoveNoteInTree}
         onCreateFolder={props.onCreateFolder}
         onRenameFolder={props.onRenameFolder}
@@ -633,7 +632,7 @@ function SidebarRuntimeNavigation({
       onSelect={props.onSelect}
       onSelectNote={props.onSelectNote}
       onCreateNote={props.onCreateNote}
-      onCreateDiagram={props.onCreateDiagram}
+      onSetNoteEmoji={props.onSetNoteEmoji}
       onMoveNoteInTree={props.onMoveNoteInTree}
       onSelectFavorite={props.onSelectFavorite}
       onReorderFavorites={props.onReorderFavorites}

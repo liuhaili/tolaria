@@ -22,8 +22,10 @@ import { htmlBlockMarkdownCodec } from './htmlBlockMarkdown'
 import { mermaidMarkdownCodec } from './mermaidMarkdown'
 import { tldrawMarkdownCodec } from './tldrawMarkdown'
 import { drawioMarkdownCodec } from './drawioMarkdown'
+import { mindmapMarkdownCodec } from './mindmapMarkdown'
 
 const EDITOR_DURABLE_MARKDOWN_CODECS = [
+  mindmapMarkdownCodec,
   drawioMarkdownCodec,
   htmlBlockMarkdownCodec,
   mermaidMarkdownCodec,

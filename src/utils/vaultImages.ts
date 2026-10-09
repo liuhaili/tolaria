@@ -24,7 +24,7 @@ const MARKDOWN_IMAGE_URL_FORBIDDEN_CHARS = ['\t', '\n', '\r', '"']
 const IMAGE_FILE_EXTENSION_PATTERN = /\.(?:avif|bmp|gif|jpe?g|png|svg|webp|tiff?)$/iu
 const WIKILINK_IMAGE_EMBED_PATTERN = /!\[\[([^\]\n]+)\]\]/g
 
-interface MarkdownImageToken {
+export interface MarkdownImageToken {
   alt: string
   end: number
   start: number
@@ -96,6 +96,16 @@ function rewriteMarkdownImages(
   markdown: Markdown,
   transformUrl: (url: MarkdownImageUrl) => MarkdownImageUrl | null,
 ): Markdown {
+  return rewriteMarkdownImageTokens(markdown, image => {
+    const nextUrl = transformUrl(image.url)
+    return nextUrl ? `![${image.alt}](${nextUrl}${image.title})` : null
+  })
+}
+
+export function rewriteMarkdownImageTokens(
+  markdown: Markdown,
+  transformImage: (image: MarkdownImageToken) => string | null,
+): Markdown {
   let rewritten = ''
   let cursor = 0
 
@@ -104,10 +114,7 @@ function rewriteMarkdownImages(
     if (!image) break
 
     rewritten += markdown.slice(cursor, image.start)
-    const nextUrl = transformUrl(image.url)
-    rewritten += nextUrl
-      ? `![${image.alt}](${nextUrl}${image.title})`
-      : markdown.slice(image.start, image.end)
+    rewritten += transformImage(image) ?? markdown.slice(image.start, image.end)
     cursor = image.end
   }
 

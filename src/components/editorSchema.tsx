@@ -29,6 +29,7 @@ import type { VaultEntry } from '../types'
 import { createTolariaCodeBlockOptions } from './codeBlockOptions'
 import { HtmlBlock } from './HtmlBlock'
 import { drawioBlockSpec } from './drawioBlockSpec'
+import { mindmapBlockSpec } from './mindmapBlockSpec'
 import { NoteTitleIcon } from './NoteTitleIcon'
 import { MermaidDiagram } from './MermaidDiagram'
 import { SafeHtmlSpan } from './SafeMarkup'
@@ -62,6 +63,51 @@ export const _wikilinkEntriesRef: { current: VaultEntry[] } = { current: [] }
 function resolveWikilinkColor(target: string) {
   return resolveColor(_wikilinkEntriesRef.current, target)
 }
+
+function imageDisplayWidth(element: HTMLElement): number {
+  const title = element.getAttribute('title') ?? ''
+  const widthMatch = /^tolaria-width=(\d{1,5})$/u.exec(title)
+  const parsedWidth = widthMatch ? Number(widthMatch[1]) : Number(element.getAttribute('width'))
+  return Number.isFinite(parsedWidth) && parsedWidth >= 1 && parsedWidth <= 10000
+    ? Math.round(parsedWidth)
+    : 0
+}
+
+export const InlineImage = createReactInlineContentSpec(
+  {
+    type: 'inlineImage' as const,
+    propSchema: {
+      alt: { default: '' },
+      url: { default: '' },
+      width: { default: 0 },
+    },
+    content: 'none',
+  },
+  {
+    runsBefore: ['image'],
+    parse: element => {
+      if (element.tagName !== 'IMG') return undefined
+      const url = element.getAttribute('src')
+      return url ? {
+        alt: element.getAttribute('alt') ?? '',
+        url,
+        width: imageDisplayWidth(element),
+      } : undefined
+    },
+    render: props => {
+      const { alt, url, width } = props.inlineContent.props
+      return (
+        <img
+          alt={alt}
+          className="tolaria-inline-image"
+          draggable={false}
+          src={url}
+          style={width > 0 ? { height: 'auto', width: `${width}px` } : undefined}
+        />
+      )
+    },
+  },
+)
 
 /** Resolve the display text and optional note icon for a wikilink target.
  *  Priority: pipe display text → entry title → humanised path stem */
@@ -488,6 +534,7 @@ const MarkdownHighlightStyle = createStyleSpec(
 export const schema = BlockNoteSchema.create({
   inlineContentSpecs: {
     ...defaultInlineContentSpecs,
+    inlineImage: InlineImage,
     wikilink: WikiLink,
     mathInline: MathInline,
   },
@@ -496,6 +543,7 @@ export const schema = BlockNoteSchema.create({
     [MARKDOWN_HIGHLIGHT_STYLE]: MarkdownHighlightStyle,
   },
   blockSpecs: {
+    mindmapBlock: mindmapBlockSpec,
     drawioBlock: drawioBlockSpec,
     audio: audioBlock,
     calloutBlock,

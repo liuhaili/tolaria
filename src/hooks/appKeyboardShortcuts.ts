@@ -114,6 +114,8 @@ function handleRichEditorCreateLinkShortcut(event: KeyboardEvent): boolean {
 }
 
 export function handleAppKeyboardEvent(actions: KeyboardActions, event: KeyboardEvent) {
+  // The embedded mind-map editor owns its canvas and toolbar shortcuts, including undo.
+  if (event.target instanceof Element && event.target.closest('.tolaria-mindmap')) return
   const commandId = findShortcutCommandIdForEvent(event)
   if (commandId === null) return
   if (commandId === APP_COMMAND_IDS.editFindInNote && !isEditorFindScopeFocused()) return

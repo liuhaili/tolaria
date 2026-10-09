@@ -64,6 +64,10 @@ The frontmatter parser (Rust: `vault/mod.rs`, TS: `utils/frontmatter.ts`) must f
 
 ## Document Model
 
+The active note browser is MD-only. `NoteTree` uses each note's `_parent_note`, `_order` and `_icon`, not the legacy `vaultTreeStore`. `frontmatterOps` keeps `_parent_note` in live indexed properties while excluding it from relationship extraction, matching native parsing and allowing immediate tree updates without a reload. Sidebar emoji actions await the same frontmatter mutation lifecycle as Properties edits. App/sidebar no longer expose standalone draw.io creation; embedded diagram blocks remain unchanged. Existing sidecar files are neither migrated nor deleted.
+
+`mindmapData` validates and normalizes the editable, bounded Mind Elixir tree without importing its runtime into ordinary note loading. `mindmapMarkdownCodec` owns `mindmap` fence round trips and preserves invalid/unsupported payloads as readable code. `MindmapBlock` updates only its still-live owning block and displays SVG through the existing passive image sanitizer. `useMindmapEditor` loads bundled assets, debounces document updates, retains failures for retry, and commits inline edits before Save-and-return. Theme/layout/node-style metadata belongs in the note's snapshot, not the sidebar relationship configuration. The diagram stays independent of draw.io and uses no attachment or configuration directory.
+
 All data lives in markdown files with YAML frontmatter. There is no database — the filesystem is the source of truth.
 
 ### Rich-Editor Markdown Serialization
@@ -1141,3 +1145,11 @@ Managed by `useSettings` hook and `SettingsPanel` component. `theme_mode` is ins
 - **`scripts/release-version.mjs`** — Tested calendar-version policy shared by authoritative CircleCI releases and the compatibility GitHub Actions release workflows. It emits shell or GitHub-output formats from the same result, validates stable tag dates, preserves the same-day-stable alpha safeguard, and produces the one-time future-version recovery bridge from ADR-0173.
 - **`.circleci/config.yml`** — Authoritative CI/CD graph for portable validation and native releases. The validation workflow reuses the `.chunk/` frontend and Playwright lanes and runs the same Rust lint/format and coverage commands in parallel so pre-push and outer-loop gates stay aligned without serializing the Rust checks. Alpha prereleases run from qualifying `main` pushes using calendar-semver technical versions (`YYYY.M.D-alpha.N`) and zero-padded GitHub tags (`alpha-vYYYY.M.D-alpha.NNNN`). Stable releases run from `vYYYY-MM-DD` and legacy `stable-vYYYY.M.D` tags, and future-dated stable tags fail closed. Both channels fan out signed macOS Apple Silicon/Intel, Linux x64, and Windows x64 builds; stable adds macOS DMGs. Windows always requires Tauri updater signatures and adds Authenticode plus `Get-AuthenticodeSignature` verification when certificate secrets are present. Linux uses Tauri's stock linuxdeploy AppImage output plugin and validates DEB/RPM desktop metadata plus installer and updater-signature artifacts. Downstream jobs assemble `alpha-latest.json` or `stable-latest.json`, publish GitHub Releases through the restricted release context, rebuild public download/history pages, and commit generated Pages output to `gh-pages`. macOS assets retain the `Tolaria_<version>_macOS_Silicon` and `Tolaria_<version>_macOS_Intel` base names. Packaged builds pass the computed version as `VITE_SENTRY_RELEASE`.
 - **Beta cohorts** are handled in PostHog targeting only. There is no beta updater feed.
+# Image width Markdown adapter
+
+imageWidthMarkdown retains widths for legacy image blocks. The inlineImage
+schema node parses and renders Markdown images inside text paragraphs, using
+the same MD image title for its width. Widths are stored in the MD, not a
+sidecar. vaultImages exposes its image-token scanner for shared destination
+parsing.
+

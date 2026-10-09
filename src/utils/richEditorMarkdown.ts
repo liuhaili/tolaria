@@ -20,6 +20,7 @@ import type {
   DirectMarkdownCapableSerializer,
 } from './blockNoteDirectMarkdown'
 import { installBlockNoteDirectMarkdown } from './blockNoteDirectMarkdown'
+import { serializeImageWidths } from './imageWidthMarkdown'
 
 type EditorBlocksSnapshot = unknown[]
 type MarkdownBody = string
@@ -185,7 +186,10 @@ function serializeRichEditorBodyToMarkdownWithTrace(
   const directEditor = editor as DirectMarkdownCapableSerializer
   delete directEditor.__tolariaLastDirectMarkdownMetrics
   const document = blocks
-  const serialized = serializeDurableEditorBlocks(editor, document, vaultPath)
+  const serialized = serializeImageWidths(
+    serializeDurableEditorBlocks(editor, document, vaultPath),
+    document,
+  )
   const body = compactMarkdown(
     restoreBlankBlockquoteParagraphs(serialized),
     { preserveConsecutiveBlankLines: true },

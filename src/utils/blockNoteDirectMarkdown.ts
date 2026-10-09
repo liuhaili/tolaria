@@ -147,10 +147,20 @@ function escapeLinkTarget(target: string): string {
 function inlineText(item: InlineItem): string {
   if (item.type === 'text') return item.text ?? ''
   if (item.type === 'link') return linkMarkdown(item)
+  if (item.type === 'inlineImage') return inlineImageMarkdown(item)
   if (item.type === 'wikilink') return wikilinkMarkdown(item)
   if (item.type === 'mathInline') return item.props?.latex ? `$${item.props.latex}$` : ''
   if (Array.isArray(item.content)) return serializeInlineContent(item.content)
   return ''
+}
+
+function inlineImageMarkdown(item: InlineItem): string {
+  const url = item.props?.url
+  if (!url) return ''
+  const alt = item.props?.alt ?? ''
+  const width = Number(item.props?.width)
+  const title = Number.isFinite(width) && width > 0 ? ` "tolaria-width=${Math.round(width)}"` : ''
+  return `![${escapeText(alt)}](${escapeLinkTarget(url)}${title})`
 }
 
 function linkMarkdown(item: InlineItem): string {

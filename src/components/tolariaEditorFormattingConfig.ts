@@ -49,6 +49,7 @@ import { MATH_BLOCK_TYPE } from '../utils/mathMarkdown'
 import { MERMAID_BLOCK_TYPE, mermaidFenceSource } from '../utils/mermaidMarkdown'
 import { TLDRAW_BLOCK_TYPE, TLDRAW_DEFAULT_HEIGHT } from '../utils/tldrawMarkdown'
 import { DRAWIO_BLOCK_TYPE, EMPTY_DRAWIO_SNAPSHOT } from '../utils/drawioMarkdown'
+import { MINDMAP_BLOCK_TYPE, createMindmapSnapshot } from '../utils/mindmapData'
 import { translate } from '../lib/i18n'
 import { calloutIconForType } from './calloutIcons'
 
@@ -136,6 +137,7 @@ const TOLARIA_SLASH_MENU_ICONS: Partial<Record<string, PhosphorIcon>> = {
   date: CalendarBlank,
   datetime: CalendarDots,
   drawio: FlowArrow,
+  mindmap: FlowArrow,
   divider: Minus,
   emoji: Smiley,
   file: File,
@@ -447,6 +449,7 @@ export function getTolariaSlashMenuItems(
       createMathSlashMenuItem(editor, labels),
       createSandboxBlockSlashMenuItem(editor, labels),
       createWhiteboardSlashMenuItem(editor),
+      createBlockSlashMenuItem(editor, { key: 'mindmap', title: translate('zh-CN', 'mindmap.insert'), aliases: ['mindmap', 'mind map', '脑图', '思维导图', 'naotu'], type: MINDMAP_BLOCK_TYPE, props: { snapshot: createMindmapSnapshot(translate('zh-CN', 'mindmap.root'), translate('zh-CN', 'mindmap.branch')) }, eventName: 'editor_mindmap_inserted' }),
       createBlockSlashMenuItem(editor, { key: 'drawio', title: translate('zh-CN', 'drawio.insert'), aliases: ['drawio', 'draw.io', '流程图', '绘图', 'diagram'], type: DRAWIO_BLOCK_TYPE, props: { snapshot: EMPTY_DRAWIO_SNAPSHOT }, eventName: 'editor_drawio_inserted' }),
       ...dateTimeItems,
     ],

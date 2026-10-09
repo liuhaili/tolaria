@@ -1,0 +1,16 @@
+.tolaria-mindmap .mind-elixir {
+  font-family: inherit;
+}
+
+.tolaria-mindmap me-tpc {
+  max-width: 360px;
+  line-height: 1.5;
+  box-shadow: 0 3px 12px rgb(0 0 0 / 5%);
+}
+
+.tolaria-mindmap me-root me-tpc {
+  font-size: 24px;
+  font-weight: 700;
+  padding: 18px 26px;
+  box-shadow: 0 8px 28px rgb(124 58 237 / 16%);
+}

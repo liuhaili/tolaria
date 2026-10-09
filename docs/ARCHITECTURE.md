@@ -1,6 +1,12 @@
 # Architecture
 
+## Markdown-only note browser
+
+App's visible note collection includes only Markdown-kind `.md` files; other indexed files remain on disk for attachments/legacy preview paths. Sidebar has no standalone draw.io creation action. `NoteTree` resolves hierarchy from each MD's `_parent_note`, reads `_order` for siblings and renders its `_icon` emoji. Mutations go through existing note frontmatter callbacks; the active shell no longer mounts the tree.yml loader or applies sidecar overrides. There is deliberately no old-data migration or deletion. Embedded `/drawio` and `/脑图` remain supported. See [ADR 0190](adr/0190-markdown-only-portable-note-tree.md).
+
 ## Offline diagrams
+
+Dedicated mind maps use `mindmapBlockSpec`/`MindmapBlock` with a lazy `MindmapEditor`. Locally bundled Mind Elixir 5.15.1 supplies hierarchy layout, drag editing and undo; `MindmapToolbar` reuses app controls for themes, layout, node styling and Unicode emoji. `useMindmapEditor` owns lifecycle, selection and debounced owning-document updates. A versioned `mindmap` JSON fence preserves node data, appearance and a sanitized SVG preview through the existing durable Markdown registry. No service, native command or sidecar file is introduced. See [ADR 0188](adr/0188-offline-embedded-mind-maps.md).
 
 Embedded diagrams use `drawioBlockSpec`/`DrawioBlock`, a slash-menu entry, and the existing durable Markdown pipeline. A `drawio` fence holds version-1 JSON with editable XML and a passive SVG preview. `DrawioEditor` can persist through document callbacks instead of writing a standalone file. Document callbacks dispatch the rich-editor external-change event so the normal note autosave remains authoritative. See [ADR 0187](adr/0187-embedded-drawio-markdown-block.md).
 
@@ -1238,3 +1244,11 @@ Features that work on both platforms without changes:
 **Capabilities:** `src-tauri/capabilities/default.json` targets desktop; `mobile.json` targets iOS/Android with a minimal permission set.
 
 **Detailed feasibility report:** `docs/IPAD-PROTOTYPE.md`
+# Image size persistence
+
+Rich-editor Markdown loading and saving use imageWidthMarkdown and an
+inlineImage schema node to round-trip image width through a reserved Markdown
+title while keeping images in their containing text paragraph. Attachment-path
+resolution runs before parsing; portable conversion runs after serialization.
+See ADR 0191. Local implementation remains untested at the owner's request.
+
