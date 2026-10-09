@@ -1,11 +1,9 @@
-import { BookOpen, GearSix as Settings, Megaphone, Moon, Package, Sun, type IconProps } from '@phosphor-icons/react'
-import type { ComponentType, MouseEventHandler } from 'react'
+import { GearSix as Settings, Moon, Package, Sun } from '@phosphor-icons/react'
 import type { McpStatus } from '../../hooks/useMcpStatus'
 import type { ThemeMode } from '../../lib/themeMode'
-import { translate, type AppLocale, type TranslationKey } from '../../lib/i18n'
+import { translate, type AppLocale } from '../../lib/i18n'
 import { useStatusBarAddRemote } from '../../hooks/useStatusBarAddRemote'
 import type { GitRemoteStatus, SyncStatus } from '../../types'
-import { rememberFeedbackDialogOpener } from '../../lib/feedbackDialogOpener'
 import { ActionTooltip } from '@/components/ui/action-tooltip'
 import { AddRemoteModal } from '../AddRemoteModal'
 import { Button } from '@/components/ui/button'
@@ -18,7 +16,6 @@ import {
   MissingGitBadge,
   NoRemoteBadge,
   OfflineBadge,
-  PulseBadge,
   SyncBadge,
   VaultReloadingBadge,
 } from './StatusBarBadges'
@@ -109,6 +106,12 @@ function BuildNumberButton({
     ? 'h-6 min-w-0 gap-1 rounded-sm px-1 py-0.5 text-[12px] font-medium text-muted-foreground hover:bg-[var(--hover)] hover:text-foreground'
     : 'h-auto gap-1 rounded-sm px-1 py-0.5 text-[12px] font-medium text-muted-foreground hover:bg-[var(--hover)] hover:text-foreground'
 
+  if (!onCheckForUpdates) {
+    return <span className="px-1 text-[12px] font-medium text-muted-foreground" data-testid="status-build-number">
+      <span style={ICON_STYLE}><Package size={13} weight="regular" />{compact ? null : (buildNumber ?? translate(locale, 'status.build.unknown'))}</span>
+    </span>
+  }
+
   return (
     <ActionTooltip copy={{ label: translate(locale, 'status.update.check') }} side="top">
       <Button
@@ -157,7 +160,7 @@ function StatusBarPrimaryBadges(options: {
   compact: boolean
   locale: AppLocale
 }) {
-  const { modifiedCount, visibleRemoteStatus, repositories, selectedRepositoryPath, onRepositoryChange, onAddRemote, onClickPending, onCommitPush, commitActionPending, gitFeaturesEnabled, onInitializeGit, syncStatus, lastSyncTime, onTriggerSync, onPullAndPush, onOpenConflictResolver, conflictCount, onClickPulse, isGitVault, mcpStatus, onInstallMcp, isOffline, isVaultReloading, compact, locale } = options
+  const { modifiedCount, visibleRemoteStatus, repositories, selectedRepositoryPath, onRepositoryChange, onAddRemote, onClickPending, onCommitPush, commitActionPending, gitFeaturesEnabled, onInitializeGit, syncStatus, lastSyncTime, onTriggerSync, onPullAndPush, onOpenConflictResolver, conflictCount, isGitVault, mcpStatus, onInstallMcp, isOffline, isVaultReloading, compact, locale } = options
   return (
     <>
       <OfflineBadge isOffline={isOffline} showSeparator={!compact} compact={compact} locale={locale} />
@@ -207,7 +210,6 @@ function StatusBarPrimaryBadges(options: {
             compact={compact}
             locale={locale}
           />
-          <PulseBadge onClick={onClickPulse} showSeparator={!compact} compact={compact} locale={locale} />
         </>
       ) : gitFeaturesEnabled ? (
         <MissingGitBadge onClick={onInitializeGit} showSeparator={!compact} compact={compact} locale={locale} />
@@ -225,85 +227,6 @@ function StatusBarPrimaryBadges(options: {
   )
 }
 
-type StatusLinkButtonProps = {
-  compact: boolean
-  icon: ComponentType<IconProps>
-  labelKey: TranslationKey
-  locale: AppLocale
-  onClick: MouseEventHandler<HTMLButtonElement>
-  testId: string
-  tooltipKey: TranslationKey
-}
-
-function StatusLinkButton({
-  compact,
-  icon: Icon,
-  labelKey,
-  locale,
-  onClick,
-  testId,
-  tooltipKey,
-}: StatusLinkButtonProps) {
-  const className = compact
-    ? 'h-6 w-6 rounded-sm p-0 text-muted-foreground hover:text-foreground'
-    : 'h-6 px-2 text-[12px] font-medium text-muted-foreground hover:text-foreground'
-
-  return (
-    <ActionTooltip copy={{ label: translate(locale, tooltipKey) }} side="top">
-      <Button
-        type="button"
-        variant="ghost"
-        size="xs"
-        className={className}
-        onClick={onClick}
-        aria-label={translate(locale, tooltipKey)}
-        data-testid={testId}
-      >
-        <Icon size={14} weight="regular" />
-        {compact ? null : translate(locale, labelKey)}
-      </Button>
-    </ActionTooltip>
-  )
-}
-
-function FeedbackButton({
-  compact,
-  locale,
-  onOpenFeedback,
-}: {
-  compact: boolean
-  locale: AppLocale
-  onOpenFeedback: () => void
-}) {
-  return (
-    <StatusLinkButton
-      compact={compact}
-      icon={Megaphone}
-      labelKey="status.feedback.label"
-      locale={locale}
-      onClick={(event) => {
-        rememberFeedbackDialogOpener(event.currentTarget)
-        onOpenFeedback()
-      }}
-      testId="status-feedback"
-      tooltipKey="status.feedback.contribute"
-    />
-  )
-}
-
-function DocsButton({ compact, locale, onOpenDocs }: { compact: boolean; locale: AppLocale; onOpenDocs: () => void }) {
-  return (
-    <StatusLinkButton
-      compact={compact}
-      icon={BookOpen}
-      labelKey="status.docs.label"
-      locale={locale}
-      onClick={onOpenDocs}
-      testId="status-docs"
-      tooltipKey="status.docs.open"
-    />
-  )
-}
 
 function primarySectionStyle(stacked: boolean, compact: boolean) {
   return {
@@ -442,7 +365,7 @@ export function StatusBarPrimarySection(options: StatusBarPrimarySectionProps) {
 }
 
 export function StatusBarSecondarySection(options: StatusBarSecondarySectionProps) {
-  const { noteCount, zoomLevel, themeMode = 'light', onZoomReset, onToggleThemeMode, onOpenFeedback, onOpenDocs, onOpenSettings, locale = 'en', stacked = false, compact = false } = options
+  const { noteCount, zoomLevel, themeMode = 'light', onZoomReset, onToggleThemeMode, onOpenSettings, locale = 'en', stacked = false, compact = false } = options
   void noteCount
   const ThemeIcon = themeMode === 'dark' ? Sun : Moon
   const themeTooltip = {
@@ -481,8 +404,6 @@ export function StatusBarSecondarySection(options: StatusBarSecondarySectionProp
           </Button>
         </ActionTooltip>
       )}
-      {onOpenFeedback && <FeedbackButton compact={compact} locale={locale} onOpenFeedback={onOpenFeedback} />}
-      {onOpenDocs && <DocsButton compact={compact} locale={locale} onOpenDocs={onOpenDocs} />}
       <ActionTooltip copy={themeTooltip} side="top" align="end" contentTestId="status-theme-mode-tooltip">
         <Button
           type="button"

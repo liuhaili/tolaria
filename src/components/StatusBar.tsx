@@ -167,7 +167,7 @@ function StatusBarFooter(props: StatusBarFooterProps) {
         rowGap: stacked ? 4 : 0,
         columnGap: compact ? 8 : 12,
         background: 'var(--sidebar)',
-        borderTop: '1px solid var(--border)',
+        borderTop: 'none',
         padding: stacked ? '4px 8px' : '0 8px',
         fontSize: 12,
         color: 'var(--muted-foreground)',

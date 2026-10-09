@@ -167,13 +167,13 @@
    and ensure the handle aligns by NOT adding padding/margin on inner elements.
    BlockNote positions handles via JS based on .bn-block-content bounding rect. */
 
-/* Title (H1) — visually separated from content.
+/* Title (H1) — separated by spacing rather than a decorative rule.
    BlockNote renders H1 without data-level, so we target :has(h1) */
 .editor__blocknote-container .bn-block-outer:has(h1) {
   margin-top: var(--headings-h1-margin-top) !important;
   margin-bottom: var(--headings-h1-margin-bottom) !important;
   padding-bottom: 16px !important;
-  border-bottom: 1px solid var(--border-primary);
+  border-bottom: 0;
 }
 .editor__blocknote-container [data-content-type="heading"]:not([data-level]) .bn-inline-content,
 .editor__blocknote-container [data-content-type="heading"][data-level="1"] .bn-inline-content {

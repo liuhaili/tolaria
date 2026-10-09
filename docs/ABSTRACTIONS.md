@@ -415,7 +415,11 @@ type SidebarSelection =
 
 `SidebarSelection.kind === 'folder'` is a first-class navigation target, not just a visual highlight.
 
-- `NoteTree` is the primary sidebar navigation surface. It builds the visual hierarchy from `_parent_note` frontmatter and delegates open and drag-to-reparent persistence to `App`; its tree only changes note metadata, never directory layout. Folder management remains available to filesystem actions, but folders themselves are not the primary note navigator.
+- `NoteTree` is the primary sidebar navigation surface. It reads hierarchy from `tolaria/config/tree.yml` (ADR 0188), with legacy `_parent_note` fallback, and delegates open/drag-to-reparent to `App`; it never changes directory layout. Its hover/focus emoji button and right-click menu reuse `EmojiPicker` in a shadcn dialog, saving Unicode emoji via the bound vault-tree store using vault-relative paths. A tree icon overrides a legacy icon in this sidebar; an explicit empty string means hidden, while null means legacy fallback. Other note-title surfaces retain their existing frontmatter icon semantics. No custom-image/icon library is offered by the tree picker.
+
+`EmojiPicker` progressively renders 64 Unicode emoji at a time, yielding an animation frame and a timed pause between interruptible updates. Category order and full-catalog search are preserved, with query changes starting a fresh batch sequence and unmount cancelling timers. Completed groups and existing buttons are memoized. `NoteTree` caches its filtered entries and hierarchy across picker-only state changes.
+
+The primary workspace uses inset rounded sidebar/editor surfaces. Decorative title/tree/chrome rules are omitted; authored Markdown dividers remain intact. `SidebarSectionVisibility.favorites` is optional and defaults to hidden unless explicitly true; hiding that navigation section does not clear favorite metadata or disable favorite actions elsewhere.
 - `src/components/sidebar/sidebarHooks.ts` owns the shared sidebar interaction primitives for menu positioning/dismissal and inline rename input behavior. Folder, Type, and saved View rows keep their domain-specific actions local, but use those primitives so right-click menus and rename fields have the same outside-click, Escape, focus, blur, and submit semantics.
 - `BreadcrumbOverflowMenuTrigger` isolates the note toolbar overflow trigger from the broader breadcrumb layout. Pointer activation waits for the completed click before opening the Radix menu, while keyboard activation and the root menu state retain standard focus, Escape, and outside-dismiss behavior.
 - `useFolderActions()` composes `useFolderRename()` and `useFolderDelete()` to keep folder mutations selection-aware while the rest of `App.tsx` only wires the resulting callbacks into `Sidebar` and the command registry.
@@ -1117,6 +1121,8 @@ Managed by `useSettings` hook and `SettingsPanel` component. `theme_mode` is ins
 
 ### Update Hooks
 - **`useUpdater(releaseChannel, automaticChecksEnabled)`** — Channel-aware updater state machine. When automatic checks are enabled, it checks the selected feed after startup; manual checks always remain available. It surfaces checking/available/downloading/ready states and delegates install work to Rust.
+
+  The application shell no longer mounts this hook or `UpdateBanner`: app update detection and notifications are disabled by owner request. The shared app menu and command palette omit check-for-updates actions, the status-bar build number is noninteractive when no updater callback is supplied, and settings expose vault synchronization without update-feed/check controls. Legacy updater implementation, persisted preference fields and native commands remain for compatibility, but the shell does not call them. Vault Git synchronization is unchanged.
 - **`useFeatureFlag(flag)`** — Returns boolean for a named feature flag. Checks `localStorage` override (`ff_<name>`), then falls back to telemetry-backed evaluation. Type-safe via `FeatureFlagName` union.
 
 ### Frontend helpers

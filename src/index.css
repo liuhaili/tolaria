@@ -396,7 +396,8 @@
     padding: 0;
     overflow: hidden;
   }
-  body.custom-window-chrome {
+  /* Keep titlebar space inside the app, away from popup body scroll-lock styles. */
+  body.custom-window-chrome #root {
     padding-top: 32px;
   }
   html, body {

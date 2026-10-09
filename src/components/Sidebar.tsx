@@ -353,6 +353,7 @@ function SidebarFoldersNavigation(options: SidebarFoldersNavigationProps) {
     onCreateNote,
     onCreateDiagram,
     onMoveNoteInTree,
+    vaultRootPath,
     groupCollapsed,
     toggleGroup,
     locale,
@@ -369,7 +370,7 @@ function SidebarFoldersNavigation(options: SidebarFoldersNavigationProps) {
   }
 
   return (
-    <NoteTree entries={entries ?? []} onCreateNote={onCreateNote} onCreateDiagram={onCreateDiagram} onSelectNote={onSelectNote} onMoveNote={onMoveNoteInTree} />
+    <NoteTree entries={entries ?? []} vaultRootPath={vaultRootPath} onCreateNote={onCreateNote} onCreateDiagram={onCreateDiagram} onSelectNote={onSelectNote} onMoveNote={onMoveNoteInTree} />
   )
 }
 
@@ -389,7 +390,7 @@ function SidebarTopNavigation(props: SidebarNavigationProps) {
         locale={props.locale ?? 'en'}
         loading={props.loading ?? false}
       />
-      {(props.loading || props.entries.some((entry) => entry.favorite && !entry.archived)) && (
+      {props.sidebarSectionVisibility?.favorites === true && (props.loading || props.entries.some((entry) => entry.favorite && !entry.archived)) && (
         <SidebarFavoritesNavigation
           loading={props.loading}
           entries={props.entries}

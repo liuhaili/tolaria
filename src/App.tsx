@@ -43,7 +43,6 @@ import { generateCommitMessage } from './utils/commitMessage'
 import { useDialogs } from './hooks/useDialogs'
 import { useVaultSwitcher } from './hooks/useVaultSwitcher'
 import { useGitHistory } from './hooks/useGitHistory'
-import { useUpdater, restartApp } from './hooks/useUpdater'
 import { useAutoSync } from './hooks/useAutoSync'
 import { useConflictResolver } from './hooks/useConflictResolver'
 import { useVaultConfig } from './hooks/useVaultConfig'
@@ -78,7 +77,6 @@ import {
 import { ConflictResolverModal } from './components/ConflictResolverModal'
 import { ConfirmDeleteDialog } from './components/ConfirmDeleteDialog'
 import { DeleteProgressNotice } from './components/DeleteProgressNotice'
-import { UpdateBanner } from './components/UpdateBanner'
 import { invoke } from '@tauri-apps/api/core'
 import { isTauri, mockInvoke } from './mock-tauri'
 import type { AiWorkspaceConversationSetting, GitSetupPreference, SidebarSelection, InboxPeriod, VaultEntry, WorkspaceIdentity } from './types'
@@ -95,7 +93,6 @@ import { openNoteListPropertiesPicker } from './components/note-list/noteListPro
 import type { NoteListMultiSelectionCommands } from './components/note-list/multiSelectionCommands'
 import { focusNoteIconPropertyEditor } from './components/noteIconPropertyEvents'
 import { trackEvent } from './lib/telemetry'
-import { areAutomaticUpdateChecksEnabled } from './lib/automaticUpdateChecks'
 import { areAiFeaturesEnabled } from './lib/aiFeatures'
 import { resolveAiTargetReadiness, type AiTarget } from './lib/aiTargets'
 import { isAiAgentInstalled } from './lib/aiAgents'
@@ -106,7 +103,6 @@ import { openExternalUrl } from './utils/url'
 import {
   translate,
 } from './lib/i18n'
-import { normalizeReleaseChannel } from './lib/releaseChannel'
 import {
   buildVaultAiGuidanceRefreshKey,
 } from './lib/vaultAiGuidance'
@@ -1301,31 +1297,6 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
   })
   const turnCurrentBlockIntoRef = useRef<((target: RichEditorBlockTypeDefinition) => void) | null>(null)
 
-  const { status: updateStatus, actions: updateActions } = useUpdater(
-    settings.release_channel,
-    areAutomaticUpdateChecksEnabled(settings),
-  )
-
-  const handleCheckForUpdates = useCallback(async () => {
-    if (updateStatus.state === 'downloading') {
-      setToastMessage('Update is downloading…')
-      return
-    }
-    if (updateStatus.state === 'ready') {
-      await restartApp()
-      return
-    }
-    setToastMessage(translate(appLocale, 'update.checking'))
-    const result = await updateActions.checkForUpdates()
-    if (result.kind === 'up-to-date') {
-      const checkedChannel = normalizeReleaseChannel(settings.release_channel)
-      setToastMessage(`No newer ${checkedChannel} update is available right now`)
-    } else if (result.kind === 'available') {
-      setToastMessage(`Tolaria ${result.displayVersion} is available`)
-    } else {
-      setToastMessage(result.message)
-    }
-  }, [appLocale, settings.release_channel, updateActions, updateStatus.state])
 
   const handleRepairVault = useCallback(async () => {
     if (!resolvedPath) return
@@ -1648,7 +1619,6 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     onCreateEmptyVault: vaultSwitcher.handleCreateEmptyVault,
     onCreateType: dialogs.openCreateType,
     ...commandAiActions,
-    onCheckForUpdates: handleCheckForUpdates,
     onRemoveActiveVault: removeActiveVaultCommand,
     onRestoreGettingStarted: cloneGettingStartedVault,
     isGettingStartedHidden: vaultSwitcher.isGettingStartedHidden,
@@ -1889,9 +1859,8 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
             />
           </div>
         </div>
-        <UpdateBanner status={updateStatus} actions={updateActions} locale={appLocale} />
         <RenameDetectedBanner renames={detectedRenames} onUpdate={handleUpdateWikilinks} onDismiss={handleDismissRenames} />
-        <StatusBar noteCount={visibleEntries.length} modifiedCount={gitModifiedCount} vaultPath={resolvedPath} defaultWorkspacePath={defaultWorkspacePath} vaults={vaultSwitcher.allVaults} multiWorkspaceEnabled={multiWorkspaceEnabled} onSwitchVault={vaultSwitcher.switchVault} onSetDefaultWorkspace={vaultSwitcher.setDefaultWorkspace} onOpenSettings={handleOpenSettings} onOpenVaultSettings={handleOpenVaultSettings} onOpenFeedback={openFeedback} onOpenDocs={openDocs} onOpenLocalFolder={vaultSwitcher.handleOpenLocalFolder} onCreateEmptyVault={vaultSwitcher.handleCreateEmptyVault} onCloneVault={dialogs.openCloneVault} onCloneGettingStarted={cloneGettingStartedVault} onClickPending={() => handleSetSelection({ kind: 'filter', filter: 'changes' })} onClickPulse={() => handleSetSelection({ kind: 'filter', filter: 'pulse' })} onCommitPush={handleCommitPush} commitActionPending={commitFlow.isOpeningCommitDialog} gitFeaturesEnabled={gitFeaturesEnabled} onInitializeGit={openGitSetupDialog} isOffline={networkStatus.isOffline} isGitVault={isGitVault} isVaultReloading={vault.isReloading || isVaultContentLoading} syncStatus={autoSync.syncStatus} lastSyncTime={autoSync.lastSyncTime} conflictCount={autoSync.conflictFiles.length} remoteStatus={autoSync.remoteStatus} repositories={gitRepositories} selectedRepositoryPath={gitSurfaces.syncRepositoryPath} onRepositoryChange={gitSurfaces.setSyncRepositoryPath} onTriggerSync={handlePullSelectedRepository} onPullAndPush={handlePullAndPushSelectedRepository} onOpenConflictResolver={conflictFlow.handleOpenConflictResolver} zoomLevel={zoom.zoomLevel} themeMode={documentThemeMode} onZoomReset={zoom.zoomReset} onToggleThemeMode={settingsLoaded ? handleToggleThemeMode : undefined} buildNumber={buildNumber} onCheckForUpdates={handleCheckForUpdates} onRemoveVault={vaultSwitcher.removeVault} onReorderVaults={vaultSwitcher.reorderVaults} onUpdateWorkspaceIdentity={vaultSwitcher.updateWorkspaceIdentity} aiFeaturesEnabled={aiFeaturesEnabled} mcpStatus={mcpSetupDialog.status} onInstallMcp={mcpSetupDialog.openDialog} locale={appLocale} />
+        <StatusBar noteCount={visibleEntries.length} modifiedCount={gitModifiedCount} vaultPath={resolvedPath} defaultWorkspacePath={defaultWorkspacePath} vaults={vaultSwitcher.allVaults} multiWorkspaceEnabled={multiWorkspaceEnabled} onSwitchVault={vaultSwitcher.switchVault} onSetDefaultWorkspace={vaultSwitcher.setDefaultWorkspace} onOpenSettings={handleOpenSettings} onOpenVaultSettings={handleOpenVaultSettings} onOpenFeedback={openFeedback} onOpenDocs={openDocs} onOpenLocalFolder={vaultSwitcher.handleOpenLocalFolder} onCreateEmptyVault={vaultSwitcher.handleCreateEmptyVault} onCloneVault={dialogs.openCloneVault} onCloneGettingStarted={cloneGettingStartedVault} onClickPending={() => handleSetSelection({ kind: 'filter', filter: 'changes' })} onClickPulse={() => handleSetSelection({ kind: 'filter', filter: 'pulse' })} onCommitPush={handleCommitPush} commitActionPending={commitFlow.isOpeningCommitDialog} gitFeaturesEnabled={gitFeaturesEnabled} onInitializeGit={openGitSetupDialog} isOffline={networkStatus.isOffline} isGitVault={isGitVault} isVaultReloading={vault.isReloading || isVaultContentLoading} syncStatus={autoSync.syncStatus} lastSyncTime={autoSync.lastSyncTime} conflictCount={autoSync.conflictFiles.length} remoteStatus={autoSync.remoteStatus} repositories={gitRepositories} selectedRepositoryPath={gitSurfaces.syncRepositoryPath} onRepositoryChange={gitSurfaces.setSyncRepositoryPath} onTriggerSync={handlePullSelectedRepository} onPullAndPush={handlePullAndPushSelectedRepository} onOpenConflictResolver={conflictFlow.handleOpenConflictResolver} zoomLevel={zoom.zoomLevel} themeMode={documentThemeMode} onZoomReset={zoom.zoomReset} onToggleThemeMode={settingsLoaded ? handleToggleThemeMode : undefined} buildNumber={buildNumber} onRemoveVault={vaultSwitcher.removeVault} onReorderVaults={vaultSwitcher.reorderVaults} onUpdateWorkspaceIdentity={vaultSwitcher.updateWorkspaceIdentity} aiFeaturesEnabled={aiFeaturesEnabled} mcpStatus={mcpSetupDialog.status} onInstallMcp={mcpSetupDialog.openDialog} locale={appLocale} />
         {aiFeaturesEnabled && !effectiveShowAIChat ? (
           <AiWorkspaceFloatingButton
             statuses={aiAgentsStatus}
@@ -1899,7 +1868,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
             defaultTarget={settings.default_ai_target ?? undefined}
             providers={settings.ai_model_providers ?? []}
             locale={appLocale}
-            updateBannerVisible={updateStatus.state !== 'idle' && updateStatus.state !== 'error'}
+            updateBannerVisible={false}
             onOpen={handleToggleAiWorkspace}
           />
         ) : null}

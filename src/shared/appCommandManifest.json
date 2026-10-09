@@ -559,7 +559,6 @@
     }
   ],
   "appMenu": [
-    { "kind": "command", "command": "appCheckForUpdates", "label": "Check for Updates..." },
     { "kind": "separator" },
     { "kind": "command", "command": "appSettings", "label": "Settings..." }
   ],

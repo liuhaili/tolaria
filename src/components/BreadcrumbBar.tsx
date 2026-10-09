@@ -43,8 +43,6 @@ import {
   FolderOpen,
   Link,
   MapTrifold,
-  Star,
-  CheckCircle,
   ArrowsClockwise,
   ArrowsInLineHorizontal,
   ArrowsOutLineHorizontal,
@@ -302,20 +300,6 @@ const TOGGLE_ACTION_CONFIGS = {
     shortcut: '⌘\\',
     renderIcon: () => <Code size={16} className={BREADCRUMB_ICON_CLASS} />,
   },
-  favorite: {
-    activeClassName: 'text-[var(--accent-yellow)]',
-    activeLabelKey: 'editor.toolbar.removeFavorite',
-    inactiveLabelKey: 'editor.toolbar.addFavorite',
-    shortcut: '⌘D',
-    renderIcon: (active: boolean) => <Star size={16} weight={active ? 'fill' : 'regular'} className={BREADCRUMB_ICON_CLASS} />,
-  },
-  organized: {
-    activeClassName: 'text-[var(--accent-green)]',
-    activeLabelKey: 'editor.toolbar.markUnorganized',
-    inactiveLabelKey: 'editor.toolbar.markOrganized',
-    shortcut: '⌘E',
-    renderIcon: (active: boolean) => <CheckCircle size={16} weight={active ? 'fill' : 'regular'} className={BREADCRUMB_ICON_CLASS} />,
-  },
 } satisfies Record<string, {
   activeClassName: string
   activeLabelKey: Parameters<typeof translate>[1]
@@ -375,42 +359,6 @@ function NoteWidthAction({
       {isWide
         ? <ArrowsInLineHorizontal size={16} className={BREADCRUMB_ICON_CLASS} />
         : <ArrowsOutLineHorizontal size={16} className={BREADCRUMB_ICON_CLASS} />}
-    </IconActionButton>
-  )
-}
-
-function FavoriteAction({ favorite, locale = 'en', onToggleFavorite }: { favorite: boolean; locale?: AppLocale; onToggleFavorite?: () => void }) {
-  if (!onToggleFavorite) return null
-  return <ConfiguredToggleAction active={favorite} config={TOGGLE_ACTION_CONFIGS.favorite} locale={locale} onClick={onToggleFavorite} />
-}
-
-function OrganizedAction({
-  organized,
-  locale = 'en',
-  onToggleOrganized,
-}: {
-  organized: boolean
-  locale?: AppLocale
-  onToggleOrganized?: () => void
-}) {
-  if (!onToggleOrganized) return null
-  return <ConfiguredToggleAction active={organized} config={TOGGLE_ACTION_CONFIGS.organized} locale={locale} onClick={onToggleOrganized} />
-}
-
-function NeighborhoodAction({
-  entry,
-  locale = 'en',
-  onEnterNeighborhood,
-}: Pick<BreadcrumbBarProps, 'entry' | 'locale' | 'onEnterNeighborhood'>) {
-  if (!onEnterNeighborhood) return null
-
-  return (
-    <IconActionButton
-      copy={{ label: translate(locale, 'editor.toolbar.openNeighborhood') }}
-      onClick={() => onEnterNeighborhood(entry)}
-      className="hover:text-foreground"
-    >
-      <MapTrifold size={16} className={BREADCRUMB_ICON_CLASS} />
     </IconActionButton>
   )
 }
@@ -927,8 +875,6 @@ function BreadcrumbActions(options: Omit<BreadcrumbBarProps, 'wordCount' | 'barR
     onToggleTableOfContents,
     inspectorCollapsed,
     onToggleInspector,
-    onToggleFavorite,
-    onToggleOrganized,
     onRevealFile,
     onCopyFilePath,
     onCopyDeepLink,
@@ -942,9 +888,8 @@ function BreadcrumbActions(options: Omit<BreadcrumbBarProps, 'wordCount' | 'barR
     overflowCollapsed,
     locale = 'en',
 } = options
-  let favoriteAction = onToggleFavorite, organizedAction = onToggleOrganized, neighborhoodAction = onEnterNeighborhood,
-    noteWidthAction = onToggleNoteWidth, tableOfContentsAction = onToggleTableOfContents
-  if (isHtmlFileEntry(entry)) favoriteAction = organizedAction = neighborhoodAction = noteWidthAction = tableOfContentsAction = undefined
+  let noteWidthAction = onToggleNoteWidth, tableOfContentsAction = onToggleTableOfContents
+  if (isHtmlFileEntry(entry)) noteWidthAction = tableOfContentsAction = undefined
 
   return (
     <div
@@ -953,11 +898,6 @@ function BreadcrumbActions(options: Omit<BreadcrumbBarProps, 'wordCount' | 'barR
       data-overflow-collapsed={overflowCollapsed}
       style={{ gap: 8 }}
     >
-      <FavoriteAction favorite={entry.favorite} locale={locale} onToggleFavorite={favoriteAction} />
-      <OrganizedAction organized={entry.organized} locale={locale} onToggleOrganized={organizedAction} />
-      <OverflowToolbarAction>
-        <NeighborhoodAction entry={entry} locale={locale} onEnterNeighborhood={neighborhoodAction} />
-      </OverflowToolbarAction>
       {!forceRawMode && <RawToggleButton rawMode={rawMode} locale={locale} onToggleRaw={onToggleRaw} />}
       <OverflowToolbarAction>
         <NoteWidthAction noteWidth={noteWidth} locale={locale} onToggleNoteWidth={noteWidthAction} />

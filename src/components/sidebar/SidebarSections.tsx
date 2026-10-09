@@ -240,7 +240,7 @@ export const SidebarTitleBar = ({
   return (
     <div
       ref={dragRegionRef}
-      className="sidebar-title-bar shrink-0 flex items-center border-b border-border"
+      className="sidebar-title-bar shrink-0 flex items-center"
       style={{
         height: 52,
         padding: '0 8px',

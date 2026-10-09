@@ -157,6 +157,7 @@ export interface Settings {
 }
 
 export interface SidebarSectionVisibility {
+  favorites?: boolean
   inbox: boolean
   allNotes: boolean
   archive: boolean

@@ -42,6 +42,11 @@ describe('relativeVaultKey', () => {
 })
 
 describe('parseVaultTree', () => {
+  it('preserves an explicit empty icon so removal survives reload', () => {
+    const parsed = parseVaultTree({ version: 1, nodes: { 'a.md': { icon: '' } } })
+    expect(parsed.nodes['a.md']).toEqual({ parent: null, order: null, icon: '' })
+    expect(vaultTreeIcon(parsed, '/vault/a.md')).toBe('')
+  })
   it('returns the empty tree for a missing or malformed payload', () => {
     expect(parseVaultTree(null)).toBe(EMPTY_VAULT_TREE)
     expect(parseVaultTree('nope')).toBe(EMPTY_VAULT_TREE)
@@ -62,7 +67,7 @@ describe('parseVaultTree', () => {
   })
 
   it('ignores non-finite orders and non-string parents', () => {
-    const parsed = parseVaultTree({ nodes: { 'a.md': { parent: 7, order: Number.NaN, icon: '' } } })
+    const parsed = parseVaultTree({ nodes: { 'a.md': { parent: 7, order: Number.NaN, icon: 42 } } })
     expect(parsed.nodes).toEqual({})
   })
 })

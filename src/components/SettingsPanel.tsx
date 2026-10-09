@@ -791,7 +791,7 @@ type SyncAndUpdatesSectionProps = Pick<
   | 'setAutomaticUpdateChecksEnabled'
 >
 
-function SyncAndUpdatesSection({ t, pullInterval, setPullInterval, releaseChannel, setReleaseChannel, automaticUpdateChecksEnabled, setAutomaticUpdateChecksEnabled }: SyncAndUpdatesSectionProps) {
+function SyncAndUpdatesSection({ t, pullInterval, setPullInterval }: SyncAndUpdatesSectionProps) {
   return (
     <>
       <SectionHeading title={t('settings.sync.title')} />
@@ -811,26 +811,6 @@ function SyncAndUpdatesSection({ t, pullInterval, setPullInterval, releaseChanne
           />
         </SettingsRow>
 
-        <SettingsRow label={t('settings.releaseChannel')} description={t('settings.releaseChannelDescription')}>
-          <SelectControl
-            ariaLabel={t('settings.releaseChannel')}
-            value={releaseChannel}
-            onValueChange={(value) => setReleaseChannel(value as ReleaseChannel)}
-            options={[
-              { value: 'stable', label: t('settings.releaseStable') },
-              { value: 'alpha', label: t('settings.releaseAlpha') },
-            ]}
-            testId="settings-release-channel"
-          />
-        </SettingsRow>
-
-        <SettingsSwitchRow
-          label={t('settings.automaticUpdateChecks')}
-          description={t('settings.automaticUpdateChecksDescription')}
-          checked={automaticUpdateChecksEnabled}
-          onChange={setAutomaticUpdateChecksEnabled}
-          testId="settings-automatic-update-checks"
-        />
       </SettingsGroup>
     </>
   )

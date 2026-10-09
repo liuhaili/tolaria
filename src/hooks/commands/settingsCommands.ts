@@ -43,7 +43,6 @@ function buildPrimarySettingsCommands({
   locale = 'en',
   onOpenSettings,
   onOpenFeedback,
-  onCheckForUpdates,
 }: Pick<SettingsCommandsConfig, 'locale' | 'onOpenSettings' | 'onOpenFeedback' | 'onCheckForUpdates'>): CommandAction[] {
   const t = createTranslator(locale)
   return [
@@ -75,7 +74,6 @@ function buildPrimarySettingsCommands({
         onOpenFeedback?.()
       },
     },
-    { id: 'check-updates', label: t('command.checkUpdates'), group: 'Settings', keywords: ['update', 'version', 'upgrade', 'release'], enabled: true, execute: () => onCheckForUpdates?.() },
   ]
 }
 

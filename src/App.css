@@ -13,6 +13,8 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  padding: 6px;
+  background: var(--sidebar);
 }
 
 body.mac-chrome {
@@ -28,10 +30,14 @@ body.mac-chrome.mac-chrome-fullscreen {
   min-width: 220px;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--surface-sidebar);
 }
 
 .app__sidebar > * {
   flex: 1;
+  border-right: 0;
 }
 
 .app:has(.app__note-list) .app__sidebar > * {
@@ -69,6 +75,16 @@ body.mac-chrome.mac-chrome-fullscreen {
   flex-direction: column;
   container-type: inline-size;
   container-name: editor;
+  border-radius: 12px;
+  background: var(--surface-editor);
+}
+
+.app__sidebar ~ .app__editor {
+  margin-left: 4px;
+}
+
+.breadcrumb-bar {
+  border-bottom: 0;
 }
 
 .app__editor > * {

@@ -69,7 +69,7 @@ export function LinuxTitlebar({ locale: localeOverride }: LinuxTitlebarProps = {
       <ResizeHandles />
       <div
         ref={dragRegionRef}
-        className="fixed top-0 right-0 left-0 z-[1000] flex items-center justify-between border-b border-border bg-background select-none"
+        className="fixed top-0 right-0 left-0 z-[1000] flex items-center justify-between bg-background select-none"
         style={{ height: LINUX_TITLEBAR_HEIGHT }}
         data-testid="linux-titlebar"
       >

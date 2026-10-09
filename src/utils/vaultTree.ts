@@ -85,12 +85,12 @@ function parseRecord(value: unknown): VaultTreeNodeRecord | null {
   return {
     parent: typeof parent === 'string' && parent.trim() ? normalizeVaultKey(parent) : null,
     order: typeof order === 'number' && Number.isFinite(order) ? order : null,
-    icon: typeof icon === 'string' && icon.trim() ? icon.trim() : null,
+    icon: typeof icon === 'string' && (icon === '' || icon.trim()) ? icon.trim() : null,
   }
 }
 
 function isEmptyRecord(record: VaultTreeNodeRecord): boolean {
-  return !record.parent && record.order === null && !record.icon
+  return !record.parent && record.order === null && record.icon === null
 }
 
 /**
@@ -150,9 +150,9 @@ export function withVaultTreeOrder(tree: VaultTree, path: string, order: number 
   return withRecord(tree, path, { order })
 }
 
-/** Set or clear an entry's tree icon. */
+/** Set an icon; '' explicitly hides a legacy icon, null restores the fallback. */
 export function withVaultTreeIcon(tree: VaultTree, path: string, icon: string | null): VaultTree {
-  return withRecord(tree, path, { icon: icon && icon.trim() ? icon.trim() : null })
+  return withRecord(tree, path, { icon: icon === null ? null : icon.trim() })
 }
 
 /**
