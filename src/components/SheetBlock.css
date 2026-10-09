@@ -1,0 +1,83 @@
+/* Inline spreadsheet block: the workbook fills a resizable frame with its own
+   scrolling, so a note can hold several tables without any of them taking over
+   the document. Width/height come from block props via the CSS vars below. */
+.sheet-block {
+  position: relative;
+  width: var(--sheet-block-width, 100%);
+  height: var(--sheet-block-height, 360px);
+  margin-block: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--border-default);
+  border-radius: 0.5rem;
+  background: var(--card);
+}
+
+.sheet-block .sheet-editor {
+  height: 100%;
+}
+
+/* Placeholder shown while the workbook chunk loads; the frame already owns the
+   height, so the block never reflows when IronCalc arrives. */
+.sheet-block__loading {
+  height: 100%;
+}
+
+/* Drag handles: right edge = width, bottom edge = height, corner = both. They
+   sit above the grid and stay invisible until the block is hovered. */
+.sheet-block__handle {
+  position: absolute;
+  z-index: 30;
+  touch-action: none;
+}
+
+.sheet-block__handle--e {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 9px;
+  cursor: ew-resize;
+}
+
+.sheet-block__handle--s {
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 9px;
+  cursor: ns-resize;
+}
+
+.sheet-block__handle--se {
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+}
+
+.sheet-block__handle--se::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--border-default);
+  border-bottom: 2px solid var(--border-default);
+  border-bottom-right-radius: 3px;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.sheet-block:hover .sheet-block__handle--se::after,
+.sheet-block[data-resizing] .sheet-block__handle--se::after {
+  opacity: 1;
+}
+
+/* While dragging, stop the grid from stealing selection or firing hover states. */
+.sheet-block[data-resizing] {
+  user-select: none;
+}
+
+.sheet-block[data-resizing] .sheet-editor {
+  pointer-events: none;
+}

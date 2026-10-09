@@ -356,6 +356,7 @@ function SidebarFoldersNavigation(options: SidebarFoldersNavigationProps) {
     groupCollapsed,
     toggleGroup,
     locale,
+    vaultRootPath,
   } = options
   if (loading) {
     return (
@@ -369,7 +370,7 @@ function SidebarFoldersNavigation(options: SidebarFoldersNavigationProps) {
   }
 
   return (
-    <NoteTree entries={entries ?? []} onCreateNote={onCreateNote} onSetNoteEmoji={onSetNoteEmoji} onSelectNote={onSelectNote} onMoveNote={onMoveNoteInTree} />
+    <NoteTree entries={entries ?? []} vaultRootPath={vaultRootPath} onCreateNote={onCreateNote} onSetNoteEmoji={onSetNoteEmoji} onSelectNote={onSelectNote} onMoveNote={onMoveNoteInTree} />
   )
 }
 

@@ -241,3 +241,4 @@ proposed → active → superseded
 | [0186](0186-offline-drawio-editor.md) | Offline draw.io editor | active |
 | [0187](0187-embedded-drawio-markdown-block.md) | Embedded draw.io Markdown blocks | active |
 | [0188](0188-vault-tree-structure-in-tolaria-config.md) | Vault tree structure and icons in tolaria/config/tree.yml | active |
+| [0192](0192-embedded-spreadsheet-markdown-block.md) | Embedded spreadsheet Markdown blocks | active |

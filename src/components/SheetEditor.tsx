@@ -1,4 +1,4 @@
-import { Component, memo, useLayoutEffect } from 'react'
+import { Component, memo, useLayoutEffect, useState } from 'react'
 import type { ErrorInfo, MutableRefObject, ReactNode } from 'react'
 import { IronCalc } from '@ironcalc/workbook'
 import { translate, type AppLocale } from '../lib/i18n'
@@ -23,6 +23,13 @@ interface SheetEditorProps {
   flushContentRef?: MutableRefObject<((path: string) => void) | null>
   sourceEntry?: VaultEntry | null
   vaultPath?: string
+  /**
+   * Pixel size of the host frame when the sheet does not fill the window (e.g. an
+   * embedded sheet block). IronCalc sizes its canvas from the container only when
+   * it renders, so a changed size has to be handed back to force a re-measure —
+   * otherwise growing the frame leaves blank space instead of showing more cells.
+   */
+  viewportSize?: { width: number; height: number }
 }
 
 const MemoizedIronCalc = memo(IronCalc)
@@ -189,13 +196,27 @@ function SheetContextMenuOverlay({
     function SheetWorkbookSurface({
       controller,
       locale,
+      viewportSize,
       workbook,
     }: {
       controller: SheetEditorControllerState
       locale: AppLocale
+      viewportSize?: { width: number; height: number }
       workbook: NonNullable<SheetEditorControllerState['workbook']>
     }) {
       const { interactionHandlers, sheetElementRef, sheetKeyboardActive, wikilinkAutocomplete } = controller
+      const [measuredViewportSize, setMeasuredViewportSize] = useState(viewportSize)
+      const [gridMeasureEpoch, setGridMeasureEpoch] = useState(0)
+
+      // Adjust state during render (React's documented pattern) so the re-measure
+      // lands in the same commit as the new frame size instead of one frame late.
+      if (
+        viewportSize
+        && (measuredViewportSize?.width !== viewportSize.width || measuredViewportSize?.height !== viewportSize.height)
+      ) {
+        setMeasuredViewportSize(viewportSize)
+        setGridMeasureEpoch(epoch => epoch + 1)
+      }
 
       useLayoutEffect(() => {
         installSheetSelectionGuard(workbook.model)
@@ -208,7 +229,7 @@ function SheetContextMenuOverlay({
           data-testid="sheet-editor"
           {...interactionHandlers}
         >
-          <MemoizedIronCalc model={workbook.model} refreshId={workbook.refreshId} />
+          <MemoizedIronCalc model={workbook.model} refreshId={workbook.refreshId + gridMeasureEpoch} />
           <SheetFormulaAutocompleteOverlay controller={controller} />
           <SheetWikilinkAutocompleteOverlay wikilinkAutocomplete={wikilinkAutocomplete} />
           <SheetContextMenuOverlay controller={controller} locale={locale} />
@@ -227,6 +248,7 @@ function SheetContextMenuOverlay({
       flushContentRef,
       sourceEntry = null,
       vaultPath = '',
+      viewportSize,
   } = options
   const controller = useSheetEditorController({
     content,
@@ -255,7 +277,7 @@ function SheetContextMenuOverlay({
 
   return (
     <SheetWorkbookBoundary key={`${workbook.path}:${workbook.generation}`} locale={locale}>
-      <SheetWorkbookSurface controller={controller} locale={locale} workbook={workbook} />
+      <SheetWorkbookSurface controller={controller} locale={locale} viewportSize={viewportSize} workbook={workbook} />
     </SheetWorkbookBoundary>
   )
 }

@@ -211,17 +211,19 @@ export function renameVaultTreeKey(tree: VaultTree, oldKey: string, newKey: stri
 }
 
 /**
- * Fill in tree icons for entries that carry none. Frontmatter `_icon` keeps ADR
- * 0049 semantics and wins where it exists; `tree.yml` supplies the icon for
- * entries that could not store one (non-Markdown files).
+ * Resolve the icon each entry should render. A named icon in `tree.yml` fills in
+ * entries that carry none (frontmatter `_icon` keeps ADR 0049 precedence), while
+ * an empty value in `tree.yml` is an explicit "no icon" and clears a value still
+ * lingering on the entry — otherwise a removed icon would come back after reload.
  */
 export function applyVaultTreeIcons<T extends { path: string; icon: string | null }>(
   entries: T[],
   tree: VaultTree,
 ): T[] {
   return entries.map((entry) => {
-    if (entry.icon) return entry
     const icon = vaultTreeIcon(tree, entry.path)
-    return icon ? { ...entry, icon } : entry
+    if (icon === '') return entry.icon === null ? entry : { ...entry, icon: null }
+    if (icon) return { ...entry, icon }
+    return entry
   })
 }

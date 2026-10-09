@@ -46,6 +46,7 @@
   "tree.emoji.empty": "No matching emoji",
   "drawio.documentUpdated": "Updated in document; saved with the note",
   "drawio.insert": "Draw.io diagram",
+  "sheet.insert": "Spreadsheet",
   "drawio.edit": "Edit diagram",
   "drawio.preview": "Diagram preview",
   "drawio.finish": "Save and return to document",

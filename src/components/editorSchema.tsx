@@ -29,6 +29,7 @@ import type { VaultEntry } from '../types'
 import { createTolariaCodeBlockOptions } from './codeBlockOptions'
 import { HtmlBlock } from './HtmlBlock'
 import { drawioBlockSpec } from './drawioBlockSpec'
+import { sheetBlockSpec } from './sheetBlockSpec'
 import { mindmapBlockSpec } from './mindmapBlockSpec'
 import { NoteTitleIcon } from './NoteTitleIcon'
 import { MermaidDiagram } from './MermaidDiagram'
@@ -545,6 +546,7 @@ export const schema = BlockNoteSchema.create({
   blockSpecs: {
     mindmapBlock: mindmapBlockSpec,
     drawioBlock: drawioBlockSpec,
+    sheetBlock: sheetBlockSpec,
     audio: audioBlock,
     calloutBlock,
     htmlBlock,

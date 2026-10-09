@@ -1,12 +1,16 @@
-import { CaretDown, CaretRight, Plus, Smiley } from '@phosphor-icons/react'
+import { CaretDown, CaretRight, FileText, Plus, Smiley } from '@phosphor-icons/react'
 import { DndContext, DragOverlay, PointerSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
-import { useMemo, useRef, useState, type MouseEvent } from 'react'
+import { useMemo, useRef, useState, useSyncExternalStore, type MouseEvent } from 'react'
 import type { VaultEntry } from '../types'
+import { cn } from '@/lib/utils'
 import { buildNoteTree, canAssignNoteParent, type NoteTreeNode } from '../utils/noteTree'
 import { hasManagedVaultSegment } from '../utils/managedVaultPaths'
-import { isMarkdownEntry } from '../utils/typeDefinitions'
+import { applyVaultTreeIcons, relativeVaultKey, withVaultTreeIcon, type VaultTree } from '../utils/vaultTree'
+import { getVaultTree, subscribeVaultTree, updateVaultTree } from '../utils/vaultTreeStore'
+import { resolveNoteIcon } from '../utils/noteIcon'
 import { Button } from './ui/button'
 import { EmojiPicker } from './EmojiPicker'
+import { NoteTitleIcon } from './NoteTitleIcon'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { translate } from '../lib/i18n'
 import { isEmoji } from '../utils/emoji'
@@ -17,6 +21,20 @@ const t = (key: Parameters<typeof translate>[1]) => translate('zh-CN', key)
 function entryEmoji(entry: VaultEntry): string {
   const icon = entry.icon
   return icon && isEmoji(icon) ? icon : ''
+}
+
+/**
+ * Icon slot content for a tree row. Emoji is drawn by the hover button, so it
+ * renders nothing here; a named icon or a plain document icon fills the slot so
+ * rows never look like they are missing an icon.
+ */
+function NoteTreeRowIcon({ entry }: { entry: VaultEntry }) {
+  const resolved = resolveNoteIcon(entry.icon)
+  if (resolved.kind === 'emoji') return null
+  if (resolved.kind === 'none') {
+    return <FileText size={17} className="shrink-0 text-muted-foreground" />
+  }
+  return <NoteTitleIcon icon={entry.icon} size={17} />
 }
 
 interface NoteTreeProps {
@@ -33,10 +51,11 @@ function isManagedEntry(entry: VaultEntry): boolean {
   return hasManagedVaultSegment(entry.path)
 }
 
-function NoteTreeRow({ depth, node, entries, onSelectNote, onOpenContext, onEditEmoji }: {
+function NoteTreeRow({ depth, node, entries, tree, onSelectNote, onOpenContext, onEditEmoji }: {
   depth: number
   node: NoteTreeNode
   entries: VaultEntry[]
+  tree: VaultTree
   onSelectNote?: (entry: VaultEntry) => void
   onOpenContext: (entry: VaultEntry, event: MouseEvent<HTMLButtonElement>) => void
   onEditEmoji: (entry: VaultEntry) => void
@@ -46,7 +65,7 @@ function NoteTreeRow({ depth, node, entries, onSelectNote, onOpenContext, onEdit
   const draggable = useDraggable({ id: node.entry.path })
   const droppable = useDroppable({ id: node.entry.path })
   const activeEntry = entries.find((entry) => entry.path === draggable.active?.id)
-  const isValidDrop = droppable.isOver && !!activeEntry && canAssignNoteParent(activeEntry, node.entry, entries)
+  const isValidDrop = droppable.isOver && !!activeEntry && canAssignNoteParent(activeEntry, node.entry, entries, tree)
   const emoji = entryEmoji(node.entry)
 
   return (
@@ -69,7 +88,13 @@ function NoteTreeRow({ depth, node, entries, onSelectNote, onOpenContext, onEdit
             {expanded ? <CaretDown size={14} /> : <CaretRight size={14} />}
           </span>
         ) : <span className="size-4 shrink-0" />}
-        <span className="size-5 shrink-0" aria-hidden="true" />
+        <span
+          className={cn('flex size-5 shrink-0 items-center justify-center', !emoji && 'group-hover:opacity-0 group-focus-within:opacity-0')}
+          data-testid={`note-tree-icon:${node.entry.path}`}
+          aria-hidden="true"
+        >
+          <NoteTreeRowIcon entry={node.entry} />
+        </span>
         <span className="truncate">{node.entry.title || node.entry.filename}</span>
       </Button>
       <Button type="button" variant="ghost" size="icon-xs"
@@ -80,7 +105,7 @@ function NoteTreeRow({ depth, node, entries, onSelectNote, onOpenContext, onEdit
         onClick={() => onEditEmoji(node.entry)}
       >{emoji || <Smiley size={17} />}</Button>
       </div>
-      {expanded && node.children.map((child) => <NoteTreeRow key={child.entry.path} depth={depth + 1} node={child} entries={entries} onSelectNote={onSelectNote} onOpenContext={onOpenContext} onEditEmoji={onEditEmoji} />)}
+      {expanded && node.children.map((child) => <NoteTreeRow key={child.entry.path} depth={depth + 1} node={child} entries={entries} tree={tree} onSelectNote={onSelectNote} onOpenContext={onOpenContext} onEditEmoji={onEditEmoji} />)}
     </>
   )
 }
@@ -90,9 +115,13 @@ function NoteTreeRootDropZone() {
   return <div ref={setNodeRef} data-testid="note-tree-root-drop" className={`h-12 rounded ${isOver ? 'bg-accent/50 ring-1 ring-primary' : ''}`} />
 }
 
-export function NoteTree({ entries, onCreateNote, onSetNoteEmoji, onSelectNote, onMoveNote }: NoteTreeProps) {
-  const visibleEntries = useMemo(() => entries.filter((entry) => isMarkdownEntry(entry) && /\.md$/i.test(entry.path) && !isManagedEntry(entry)), [entries])
-  const nodes = useMemo(() => buildNoteTree(visibleEntries), [visibleEntries])
+export function NoteTree({ entries, vaultRootPath, onCreateNote, onSetNoteEmoji, onSelectNote, onMoveNote }: NoteTreeProps) {
+  const tree = useSyncExternalStore(subscribeVaultTree, getVaultTree)
+  const visibleEntries = useMemo(
+    () => applyVaultTreeIcons(entries.filter((entry) => !isManagedEntry(entry)), tree),
+    [entries, tree],
+  )
+  const nodes = useMemo(() => buildNoteTree(visibleEntries, tree), [visibleEntries, tree])
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   const [draggedEntry, setDraggedEntry] = useState<VaultEntry | null>(null)
   const [contextEntry, setContextEntry] = useState<VaultEntry | null>(null)
@@ -103,12 +132,17 @@ export function NoteTree({ entries, onCreateNote, onSetNoteEmoji, onSelectNote, 
   const savingEmojiRef = useRef(false)
   const editEmoji = (entry: VaultEntry) => { setContextEntry(null); setEmojiEntry(entry) }
   const saveEmoji = async (entry: VaultEntry, emoji: string) => {
-    if (!onSetNoteEmoji || savingEmojiRef.current || (emoji && !isEmoji(emoji))) return
+    if (savingEmojiRef.current || (emoji && !isEmoji(emoji))) return
     savingEmojiRef.current = true
     setSavingEmoji(true)
     setSaveError(false)
     try {
-      await onSetNoteEmoji(entry, emoji)
+      // Icons live in tolaria/config/tree.yml so they persist for files that
+      // cannot carry frontmatter (ADR 0188); `onSetNoteEmoji` mirrors the value
+      // into note metadata where the vault supports it.
+      const key = relativeVaultKey(entry.path, vaultRootPath)
+      if (key) updateVaultTree(withVaultTreeIcon(getVaultTree(), key, emoji))
+      await onSetNoteEmoji?.(entry, emoji)
       trackEvent('tree_emoji_changed', { action: emoji ? 'set' : 'remove' })
       setEmojiEntry(null)
       setContextEntry(null)
@@ -125,7 +159,7 @@ export function NoteTree({ entries, onCreateNote, onSetNoteEmoji, onSelectNote, 
     if (!over || !onMoveNote || active.id === over.id) return
     const note = visibleEntries.find((entry) => entry.path === active.id)
     const parent = over.id === 'note-tree-root' ? null : visibleEntries.find((entry) => entry.path === over.id) ?? null
-    if (note && canAssignNoteParent(note, parent, visibleEntries)) {
+    if (note && canAssignNoteParent(note, parent, visibleEntries, tree)) {
       setSaveError(false)
       void Promise.resolve(onMoveNote(note, parent)).catch(() => setSaveError(true))
     }
@@ -137,7 +171,7 @@ export function NoteTree({ entries, onCreateNote, onSetNoteEmoji, onSelectNote, 
         {onCreateNote && <Button type="button" variant="ghost" size="icon-xs" aria-label="新建笔记" title="新建笔记" onClick={onCreateNote}><Plus size={16} /></Button>}
       </div>
       <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={({ active }) => setDraggedEntry(visibleEntries.find((entry) => entry.path === active.id) ?? null)} onDragCancel={() => setDraggedEntry(null)} onDragEnd={handleDragEnd}>
-          {nodes.map((node) => <NoteTreeRow key={node.entry.path} depth={0} node={node} entries={visibleEntries} onSelectNote={onSelectNote} onOpenContext={openContext} onEditEmoji={editEmoji} />)}
+          {nodes.map((node) => <NoteTreeRow key={node.entry.path} depth={0} node={node} entries={visibleEntries} tree={tree} onSelectNote={onSelectNote} onOpenContext={openContext} onEditEmoji={editEmoji} />)}
           <NoteTreeRootDropZone />
           <DragOverlay>{draggedEntry && <div className="rounded border border-border bg-popover px-3 py-2 text-sm shadow-md">{draggedEntry.title || draggedEntry.filename}</div>}</DragOverlay>
       </DndContext>

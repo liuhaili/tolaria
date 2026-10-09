@@ -182,4 +182,11 @@ describe('applyVaultTreeIcons', () => {
     const applied = applyVaultTreeIcons(entries, EMPTY_VAULT_TREE)
     expect(applied[0]).toBe(entries[0])
   })
+
+  it('treats an empty icon in the tree as an explicit clear', () => {
+    const entries = [{ path: 'note.md', icon: '📚' }]
+    const applied = applyVaultTreeIcons(entries, tree({ 'note.md': { parent: null, order: null, icon: '' } }))
+    expect(applied[0].icon).toBeNull()
+    expect(applied[0]).not.toBe(entries[0])
+  })
 })

@@ -121,7 +121,6 @@ function BuildNumberButton({
         className={className}
         onClick={onCheckForUpdates}
         aria-label={translate(locale, 'status.update.check')}
-        aria-disabled={onCheckForUpdates ? undefined : true}
         data-testid="status-build-number"
       >
         <span style={ICON_STYLE}>

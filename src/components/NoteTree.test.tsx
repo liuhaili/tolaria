@@ -63,8 +63,28 @@ describe('NoteTree', () => {
     expect(onSelectNote).toHaveBeenCalledWith(child)
   })
 
-  it('offers a button to create a root note', () => {
-    const parent = entry('/vault/project.md')
+  it('fills every row icon slot with a default icon when the note has none', () => {
+    const note = entry('/vault/plain.md')
+    render(<NoteTree entries={[note]} />)
+
+    const slot = screen.getByTestId('note-tree-icon:/vault/plain.md')
+    expect(slot).toBeInTheDocument()
+    expect(slot.querySelector('svg')).toBeTruthy()
+  })
+
+  it('prefers a named icon and an emoji over the default icon', () => {
+    const named = { ...entry('/vault/named.md'), icon: 'star' }
+    const emojiNote = { ...entry('/vault/emoji.md'), icon: '📚' }
+    render(<NoteTree entries={[named, emojiNote]} />)
+
+    // Named icon renders in the shared slot; emoji is drawn by the emoji button instead.
+    expect(screen.getByTestId('note-tree-icon:/vault/named.md').querySelector('svg')).toBeTruthy()
+    expect(screen.getByTestId('note-tree-icon:/vault/emoji.md').querySelector('svg')).toBeNull()
+    expect(screen.getByTestId('note-tree-icon:/vault/emoji.md').textContent).toBe('')
+    expect(screen.getByRole('button', { name: '更换表情' })).toHaveTextContent('📚')
+  })
+
+  it('offers a button to create a root note', () => {    const parent = entry('/vault/project.md')
     const onCreateNote = vi.fn()
     render(<NoteTree entries={[parent]} onCreateNote={onCreateNote} />)
 

@@ -46,6 +46,7 @@
   "tree.emoji.empty": "没有匹配的表情",
   "drawio.documentUpdated": "已更新文档，随文档保存",
   "drawio.insert": "Draw.io 流程图",
+  "sheet.insert": "电子表格",
   "drawio.edit": "编辑流程图",
   "drawio.preview": "流程图预览",
   "drawio.finish": "保存并返回文档",

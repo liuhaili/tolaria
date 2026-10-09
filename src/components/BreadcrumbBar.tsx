@@ -305,7 +305,7 @@ const TOGGLE_ACTION_CONFIGS = {
   activeLabelKey: Parameters<typeof translate>[1]
   inactiveLabelKey: Parameters<typeof translate>[1]
   shortcut: string
-  renderIcon: (active: boolean) => ReactNode
+  renderIcon: () => ReactNode
 }>
 
 function ConfiguredToggleAction({
@@ -329,7 +329,7 @@ function ConfiguredToggleAction({
       onClick={onClick}
       shortcut={formatShortcutDisplay({ display: config.shortcut })}
     >
-      {config.renderIcon(active)}
+      {config.renderIcon()}
     </TranslatedToggleIconAction>
   )
 }
