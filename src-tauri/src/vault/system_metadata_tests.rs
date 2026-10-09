@@ -105,6 +105,21 @@ fn ignores_unknown_underscore_keys_in_properties_and_relationships() {
 }
 
 #[test]
+fn preserves_note_tree_parent_for_sidebar_reconstruction() {
+    let dir = TempDir::new().unwrap();
+    let entry = parse_test_entry(
+        &dir,
+        "child.md",
+        "---\ntype: Note\n_parent_note: \"[[project]]\"\n---\n# Child\n",
+    );
+    assert_eq!(
+        entry.properties.get("_parent_note").and_then(|value| value.as_str()),
+        Some("[[project]]")
+    );
+    assert!(!entry.relationships.contains_key("_parent_note"));
+}
+
+#[test]
 fn parses_note_width_without_property_leaks() {
     let dir = TempDir::new().unwrap();
     let entry = parse_test_entry(

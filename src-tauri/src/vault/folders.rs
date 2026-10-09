@@ -77,6 +77,14 @@ pub fn rename_folder(
     fs::rename(&source_path, &destination_path)
         .map_err(|error| format!("Failed to rename folder: {}", error))?;
 
+    // Carry tree.yml overrides (ADR 0188) over to the new folder path. Failures
+    // are logged but never fail the rename itself; stale keys get pruned later.
+    let old_relative = display_relative_path(&relative_path);
+    let new_relative = display_relative_path(&destination_relative);
+    if let Err(error) = super::tree::rename_key(vault_path, &old_relative, &new_relative) {
+        log::warn!("tree.yml folder key sync failed for {old_relative} -> {new_relative}: {error}");
+    }
+
     Ok(FolderRenameResult {
         old_path: display_relative_path(&relative_path),
         new_path: display_relative_path(&destination_relative),

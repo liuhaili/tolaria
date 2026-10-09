@@ -98,14 +98,18 @@ fn canonical_paths(vault: &Path, source: &Path) -> Result<(PathBuf, PathBuf), St
     let vault = vault
         .canonicalize()
         .map_err(|error| format!("Failed to resolve vault path: {error}"))?;
-    let attachments = vault
-        .join("attachments")
-        .canonicalize()
-        .map_err(|error| format!("Failed to resolve attachments folder: {error}"))?;
     let source = source
         .canonicalize()
         .map_err(|error| format!("Failed to resolve attachment: {error}"))?;
-    if !source.is_file() || !source.starts_with(attachments) {
+    let attachment_roots = [
+        vault.join("tolaria").join("attachments"),
+        vault.join("attachments"),
+    ];
+    let is_attachment = attachment_roots.into_iter().any(|root| {
+        root.canonicalize()
+            .is_ok_and(|attachments| source.starts_with(attachments))
+    });
+    if !source.is_file() || !is_attachment {
         return Err("Attachment path must stay inside the vault attachments folder".to_string());
     }
     Ok((vault, source))
@@ -341,6 +345,43 @@ mod tests {
         let source = attachments.join(name);
         fs::write(&source, b"image data").unwrap();
         (dir, source)
+    }
+
+    fn tolaria_attachment_fixture(name: &str) -> (TempDir, PathBuf) {
+        let dir = TempDir::new().unwrap();
+        let attachments = dir.path().join("tolaria").join("attachments");
+        fs::create_dir_all(&attachments).unwrap();
+        let source = attachments.join(name);
+        fs::write(&source, b"image data").unwrap();
+        (dir, source)
+    }
+
+    #[test]
+    fn renames_attachments_in_the_tolaria_workspace() {
+        let (dir, source) = tolaria_attachment_fixture("photo.png");
+        fs::write(
+            dir.path().join("note.md"),
+            "![photo.png](tolaria/attachments/photo.png)\n",
+        )
+        .unwrap();
+
+        let result = rename_attachment(AttachmentRenameRequest {
+            requested_name: "diagram.png",
+            source_path: source.to_str().unwrap(),
+            vault_path: dir.path().to_str().unwrap(),
+        })
+        .unwrap();
+
+        assert_eq!(result.new_name, "diagram.png");
+        assert_eq!((result.updated_files, result.failed_updates), (1, 0));
+        assert!(dir
+            .path()
+            .join("tolaria/attachments/diagram.png")
+            .exists());
+        assert_eq!(
+            fs::read_to_string(dir.path().join("note.md")).unwrap(),
+            "![diagram.png](tolaria/attachments/diagram.png)\n"
+        );
     }
 
     #[test]

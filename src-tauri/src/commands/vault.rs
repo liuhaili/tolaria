@@ -5,6 +5,7 @@ mod frontmatter_cmds;
 mod lifecycle_cmds;
 mod rename_cmds;
 mod scan_cmds;
+mod tree_cmds;
 mod view_cmds;
 
 pub use attachment_cmds::*;
@@ -14,6 +15,7 @@ pub use frontmatter_cmds::*;
 pub use lifecycle_cmds::*;
 pub use rename_cmds::*;
 pub use scan_cmds::*;
+pub use tree_cmds::*;
 pub use view_cmds::*;
 
 #[cfg(test)]

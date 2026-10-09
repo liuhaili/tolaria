@@ -28,6 +28,7 @@ import { MARKDOWN_HIGHLIGHT_STYLE } from '../utils/markdownHighlightMarkdown'
 import type { VaultEntry } from '../types'
 import { createTolariaCodeBlockOptions } from './codeBlockOptions'
 import { HtmlBlock } from './HtmlBlock'
+import { drawioBlockSpec } from './drawioBlockSpec'
 import { NoteTitleIcon } from './NoteTitleIcon'
 import { MermaidDiagram } from './MermaidDiagram'
 import { SafeHtmlSpan } from './SafeMarkup'
@@ -495,6 +496,7 @@ export const schema = BlockNoteSchema.create({
     [MARKDOWN_HIGHLIGHT_STYLE]: MarkdownHighlightStyle,
   },
   blockSpecs: {
+    drawioBlock: drawioBlockSpec,
     audio: audioBlock,
     calloutBlock,
     htmlBlock,

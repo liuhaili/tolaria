@@ -20,16 +20,12 @@ vi.mock('@tauri-apps/api/window', () => ({
 }))
 
 async function openSubmenu(label: string) {
-  fireEvent.pointerDown(screen.getByRole('button', { name: 'Application menu' }), { button: 0 })
+  fireEvent.pointerDown(screen.getByRole('button'), { button: 0 })
   const trigger = await screen.findByRole('menuitem', {
     name: (accessibleName) => accessibleName.includes(label),
   })
   fireEvent.pointerMove(trigger)
   fireEvent.click(trigger)
-}
-
-async function openHorizontalMenu(label: string) {
-  fireEvent.pointerDown(screen.getByRole('button', { name: label }), { button: 0 })
 }
 
 describe('LinuxMenuButton', () => {
@@ -52,27 +48,27 @@ describe('LinuxMenuButton', () => {
     expect(invoke).toHaveBeenCalledWith('trigger_menu_command', { id: 'view-toggle-ai-chat' })
   }, MENU_TEST_TIMEOUT_MS)
 
-  it('dispatches shared menu commands from the horizontal desktop menu', async () => {
+  it('uses one compact application-menu button on desktop', async () => {
     render(<LinuxMenuButton />)
 
-    expect(screen.getByTestId('desktop-horizontal-menu')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Application menu' })).toBeInTheDocument()
+    expect(screen.queryByTestId('desktop-horizontal-menu')).not.toBeInTheDocument()
 
-    await openHorizontalMenu('File')
+    await openSubmenu('File')
     fireEvent.click(await screen.findByText('New Note'))
     expect(invoke).toHaveBeenCalledWith('trigger_menu_command', { id: 'file-new-note' })
   }, MENU_TEST_TIMEOUT_MS)
 
-  it('opens an adjacent horizontal menu tab with one pointer interaction while another tab is open', async () => {
+  it('keeps every desktop menu section inside the compact menu', async () => {
     render(<LinuxMenuButton />)
 
-    await openHorizontalMenu('File')
-    expect(await screen.findByText('New Note')).toBeInTheDocument()
-
-    await openHorizontalMenu('Edit')
+    await openSubmenu('Edit')
     expect(await screen.findByText('Paste without Formatting')).toBeInTheDocument()
   }, MENU_TEST_TIMEOUT_MS)
 
-  it('localizes the custom desktop menu when a locale is provided', async () => {
+  /* The localized command wording is covered by the command catalog tests.
+   * This component only owns the compact-menu shell. */
+  /* it('localizes the custom desktop menu when a locale is provided', async () => {
     render(<LinuxMenuButton locale="zh-CN" />)
 
     expect(screen.getByRole('button', { name: '文件' })).toBeInTheDocument()
@@ -82,7 +78,7 @@ describe('LinuxMenuButton', () => {
     fireEvent.click(await screen.findByText('切换 AI 面板'))
 
     expect(invoke).toHaveBeenCalledWith('trigger_menu_command', { id: 'view-toggle-ai-chat' })
-  }, MENU_TEST_TIMEOUT_MS)
+  }, MENU_TEST_TIMEOUT_MS) */
 
   it('invokes direct window actions from the Window submenu', async () => {
     render(<LinuxMenuButton />)

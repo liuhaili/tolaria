@@ -1,7 +1,7 @@
 import { memo, type MouseEvent as ReactMouseEvent, useCallback, useMemo, useState } from 'react'
 import { Plus } from '@phosphor-icons/react'
 import { Button } from '@/components/ui/button'
-import type { FolderCreationParent, FolderNode, SidebarSelection } from '../types'
+import type { FolderCreationParent, FolderNode, SidebarSelection, VaultEntry } from '../types'
 import { FolderContextMenu } from './folder-tree/FolderContextMenu'
 import { FolderNameInput } from './folder-tree/FolderNameInput'
 import { FolderTreeRow } from './folder-tree/FolderTreeRow'
@@ -14,8 +14,10 @@ import type { FolderFileActions } from '../hooks/useFileActions'
 
 interface FolderTreeProps {
   folders: FolderNode[]
+  entries?: VaultEntry[]
   selection: SidebarSelection
   onSelect: (selection: SidebarSelection) => void
+  onSelectNote?: (entry: VaultEntry) => void
   onCreateFolder?: (name: string, parent?: FolderCreationParent) => Promise<boolean> | boolean
   onRenameFolder?: (folderPath: string, nextName: string) => Promise<boolean> | boolean
   onDeleteFolder?: (folderPath: string) => void
@@ -42,6 +44,8 @@ interface FolderTreeBodyProps
   | 'onStartRenameFolder'
   | 'onCanDropNote'
   | 'onMoveNoteToFolder'
+  | 'entries'
+  | 'onSelectNote'
   | 'renamingFolderPath'
   | 'selection'
 > {
@@ -141,7 +145,7 @@ function useCreateFolderSubmit({
 }
 
 export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
-  const { folders, selection, onSelect, onCreateFolder, onRenameFolder, onDeleteFolder, folderFileActions, renamingFolderPath, onStartRenameFolder, onCancelRenameFolder, onCanDropNote, onMoveNoteToFolder, collapsed: externalCollapsed, locale = 'en', onToggle, vaultRootPath } = options
+  const { folders, entries = [], selection, onSelect, onSelectNote, onCreateFolder, onRenameFolder, onDeleteFolder, folderFileActions, renamingFolderPath, onStartRenameFolder, onCancelRenameFolder, onCanDropNote, onMoveNoteToFolder, collapsed: externalCollapsed, locale = 'en', onToggle, vaultRootPath } = options
   const [creationParent, setCreationParent] = useState<FolderCreationParent | undefined>(undefined)
   const {
         closeCreateForm,
@@ -218,6 +222,7 @@ export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
           <FolderTreeBody
             displayedExpanded={displayedExpanded}
             displayedFolders={displayedFolders}
+            entries={entries}
             isCreating={isCreating}
             locale={locale}
             creationParent={creationParent}
@@ -228,6 +233,7 @@ export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
             onOpenMenu={handleOpenMenu}
             onRenameFolder={onRenameFolder}
             onSelect={onSelect}
+            onSelectNote={onSelectNote}
             onStartRenameFolder={onStartRenameFolder}
             renamingFolderPath={renamingFolderPath}
             onCanDropNote={onCanDropNote}
@@ -252,8 +258,8 @@ export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
       )
     })
 
-    function FolderTreeBody(options: FolderTreeBodyProps) {
-      const { displayedExpanded, displayedFolders, isCreating, locale = 'en', creationParent, onCancelCreateFolder, onCancelRenameFolder, onCreateFolderSubmit, onDeleteFolder, onOpenMenu, onRenameFolder, onSelect, onStartRenameFolder, onCanDropNote, onMoveNoteToFolder, renamingFolderPath, rootPath, sectionCollapsed, selection, toggleFolder } = options
+function FolderTreeBody(options: FolderTreeBodyProps) {
+      const { displayedExpanded, displayedFolders, entries = [], isCreating, locale = 'en', creationParent, onCancelCreateFolder, onCancelRenameFolder, onCreateFolderSubmit, onDeleteFolder, onOpenMenu, onRenameFolder, onSelect, onSelectNote, onStartRenameFolder, onCanDropNote, onMoveNoteToFolder, renamingFolderPath, rootPath, sectionCollapsed, selection, toggleFolder } = options
   if (sectionCollapsed) return null
 
   return (
@@ -263,6 +269,7 @@ export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
           key={folderNodeKey(node)}
           depth={0}
           expanded={displayedExpanded}
+          entries={entries}
           node={node}
           creationParent={creationParent}
           isCreating={isCreating}
@@ -272,6 +279,7 @@ export const FolderTree = memo(function FolderTree(options: FolderTreeProps) {
           onOpenMenu={onOpenMenu}
           onRenameFolder={onRenameFolder}
           onSelect={onSelect}
+          onSelectNote={onSelectNote}
           onStartRenameFolder={onStartRenameFolder}
           onCanDropNote={onCanDropNote}
           onMoveNoteToFolder={onMoveNoteToFolder}

@@ -9,7 +9,7 @@ import {
 } from './noteListHelpers'
 
 describe('Inbox attachment eligibility', () => {
-  it('matches All Notes by excluding Markdown anywhere under attachments', () => {
+  it('matches All Notes by excluding Markdown in legacy and Tolaria-managed attachments', () => {
     const createdAt = Math.floor(Date.now() / 1000)
     const rootNote = makeEntry({ path: '/vault/note.md', title: 'Root note', createdAt })
     const nestedAttachment = makeEntry({
@@ -22,11 +22,18 @@ describe('Inbox attachment eligibility', () => {
       title: 'Keep this note',
       createdAt,
     })
+    const tolariaAttachment = makeEntry({
+      path: '/vault/tolaria/attachments/transcripts/meeting.md',
+      title: 'Managed attachment transcript',
+      createdAt,
+    })
 
     expect(isAllNotesEntry(nestedAttachment)).toBe(false)
     expect(isInboxEntry(nestedAttachment)).toBe(false)
-    expect(filterInboxEntries([rootNote, nestedAttachment, similarlyNamedFolder], 'all'))
+    expect(isAllNotesEntry(tolariaAttachment)).toBe(false)
+    expect(isInboxEntry(tolariaAttachment)).toBe(false)
+    expect(filterInboxEntries([rootNote, nestedAttachment, similarlyNamedFolder, tolariaAttachment], 'all'))
       .toEqual([rootNote, similarlyNamedFolder])
-    expect(countInboxByPeriod([rootNote, nestedAttachment, similarlyNamedFolder]).all).toBe(2)
+    expect(countInboxByPeriod([rootNote, nestedAttachment, similarlyNamedFolder, tolariaAttachment]).all).toBe(2)
   })
 })

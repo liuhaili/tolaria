@@ -162,6 +162,19 @@ describe('SettingsPanel', () => {
     expect(screen.getAllByText('Sync & Updates').length).toBeGreaterThan(0)
   })
 
+  it('defaults sidebar navigation sections to hidden and saves enabled sections', () => {
+    renderOpenSettings()
+
+    expect(within(screen.getByTestId('settings-sidebar-show-inbox')).getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+    expect(within(screen.getByTestId('settings-sidebar-show-types')).getByRole('switch')).toHaveAttribute('aria-checked', 'false')
+
+    fireEvent.click(within(screen.getByTestId('settings-sidebar-show-inbox')).getByRole('switch'))
+    fireEvent.click(within(screen.getByTestId('settings-sidebar-show-types')).getByRole('switch'))
+    saveSettingsPanel()
+
+    expectSettingsSaved({ sidebar_inbox_visible: true, sidebar_types_visible: true })
+  })
+
   it('separates local agents, local models, and API models in AI settings', async () => {
     const aiAgentsStatus: AiAgentsStatus = {
       claude_code: { status: 'installed', version: '2.1.18' },

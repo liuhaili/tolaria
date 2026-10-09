@@ -437,6 +437,8 @@ export const mockHandlers = {
   list_vault_folders: () => [],
   list_views: () => [],
   save_view_cmd: () => {},
+  load_vault_tree: () => ({ version: 1, nodes: {} }),
+  save_vault_tree: () => {},
   delete_view_cmd: () => {},
   reload_vault: () => MOCK_ENTRIES,
   reload_vault_entry: (args: { path: string }) => MOCK_ENTRIES.find(e => e.path === args.path) ?? { path: args.path, title: 'Unknown', filename: 'unknown.md', aliases: [], belongsTo: [], relatedTo: [], archived: false, snippet: '', wordCount: 0, fileSize: 0, relationships: {}, outgoingLinks: [], properties: {} },
@@ -612,17 +614,17 @@ export const mockHandlers = {
   },
   save_image: (args: { vault_path?: string; filename: string; data: string }) => {
     const vault = args.vault_path ?? '/Users/luca/Laputa'
-    return `${vault}/attachments/${Date.now()}-${args.filename}`
+    return `${vault}/tolaria/attachments/${Date.now()}-${args.filename}`
   },
   copy_image_to_vault: (args: { vault_path?: string; source_path: string }) => {
     const vault = args.vault_path ?? '/Users/luca/Laputa'
     const filename = args.source_path.split('/').pop() ?? 'image.png'
-    return `${vault}/attachments/${Date.now()}-${filename}`
+    return `${vault}/tolaria/attachments/${Date.now()}-${filename}`
   },
   download_remote_image_to_vault: (args: { vault_path?: string; url: string }) => {
     const vault = args.vault_path ?? '/Users/luca/Laputa'
     const filename = new URL(args.url).pathname.split('/').pop() || 'remote-image.png'
-    return `${vault}/attachments/${Date.now()}-${filename}`
+    return `${vault}/tolaria/attachments/${Date.now()}-${filename}`
   },
   get_settings: () => ({ ...mockSettings }),
   save_settings: (args: { settings: Settings }) => {

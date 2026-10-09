@@ -19,6 +19,18 @@ fn has_ignored_component(path: &Path) -> bool {
     })
 }
 
+/// `tolaria/config/` is machine-managed app state (ADR 0184/0188). Writes there
+/// are made by the app itself and must not re-trigger a vault refresh.
+fn is_inside_managed_config_dir(path: &Path) -> bool {
+    let mut components = path.components().map(|part| part.as_os_str());
+    while let Some(component) = components.next() {
+        if component == OsStr::new("tolaria") && components.next() == Some(OsStr::new("config")) {
+            return true;
+        }
+    }
+    false
+}
+
 fn is_temp_file_name(name: &OsStr) -> bool {
     let Some(name) = name.to_str() else {
         return false;
@@ -71,6 +83,9 @@ fn resolve_git_dir(vault_path: &Path) -> Option<PathBuf> {
 
 fn is_watchable_path(path: &Path, git_dir: Option<&Path>) -> bool {
     if has_ignored_component(path) {
+        return false;
+    }
+    if is_inside_managed_config_dir(path) {
         return false;
     }
     if let Some(git_dir) = git_dir {
@@ -424,6 +439,19 @@ mod tests {
     }
 
     #[test]
+    fn ignores_app_managed_config_writes() {
+        assert!(!is_watchable_path(
+            Path::new("/vault/tolaria/config/tree.yml"),
+            None
+        ));
+        // Attachments stay watchable: user-visible assets live under tolaria/ too.
+        assert!(is_watchable_path(
+            Path::new("/vault/tolaria/attachments/image.png"),
+            None
+        ));
+    }
+
+    #[test]
     fn ignores_paths_inside_resolved_git_dir() {
         // .git -> .git.nosync symlink trick used for iCloud/Dropbox vaults
         let git_dir = PathBuf::from("/vault/.git.nosync");
@@ -442,6 +470,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn resolves_real_git_dir_through_symlink() {
         let dir = tempfile::tempdir().unwrap();
         let real_git = dir.path().join(".git.nosync");

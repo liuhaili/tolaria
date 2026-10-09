@@ -48,6 +48,13 @@ body.mac-chrome.mac-chrome-fullscreen {
   background: var(--surface-sidebar);
 }
 
+/* The vault tree is now the primary note navigator. Keep the legacy list
+   mounted for selection/history compatibility while removing it from the
+   desktop layout. */
+.app__note-list--tree-hidden {
+  display: none;
+}
+
 .app__note-list > * {
   flex: 1;
   border-left: 1px solid var(--sidebar-border);
@@ -66,6 +73,34 @@ body.mac-chrome.mac-chrome-fullscreen {
 
 .app__editor > * {
   flex: 1;
+}
+
+/* On custom desktop chrome the document name and its actions share the real
+   window bar. The former sidebar-only navigation strip is intentionally gone:
+   the sidebar is reserved for the note relationship tree. */
+body:has([data-testid='linux-titlebar']) .sidebar-title-bar {
+  display: none;
+}
+
+body:has([data-testid='linux-titlebar']) .breadcrumb-bar {
+  position: fixed !important;
+  top: 0;
+  left: 38px;
+  right: 118px;
+  z-index: 1002;
+  height: 32px !important;
+  min-height: 32px;
+  padding: 0 8px !important;
+  border-bottom: 0;
+}
+
+body:has([data-testid='linux-titlebar']) .breadcrumb-bar__actions {
+  gap: 2px;
+}
+
+body:has([data-testid='linux-titlebar']) .breadcrumb-bar__actions [data-slot='button'] {
+  min-height: 28px;
+  min-width: 28px;
 }
 
 @keyframes spin {

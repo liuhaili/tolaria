@@ -8,6 +8,7 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 export default defineConfig([
   globalIgnores([
     'dist',
+    'public/drawio/',
     'coverage',
     'site/.vitepress/cache/',
     'site/.vitepress/dist/',

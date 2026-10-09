@@ -15,12 +15,22 @@ interface VaultContentSettingsSectionProps {
   setDefaultNoteWidth: (value: NoteWidthMode) => void
   sidebarTypePluralizationEnabled: boolean
   setSidebarTypePluralizationEnabled: (value: boolean) => void
+  sidebarSectionVisibility: SidebarSectionVisibility
+  setSidebarSectionVisibility: (value: SidebarSectionVisibility) => void
   initialH1AutoRename: boolean
   setInitialH1AutoRename: (value: boolean) => void
   hideGitignoredFiles: boolean
   setHideGitignoredFiles: (value: boolean) => void
   allNotesFileVisibility: AllNotesFileVisibility
   setAllNotesFileVisibility: (value: AllNotesFileVisibility) => void
+}
+
+interface SidebarSectionVisibility {
+  inbox: boolean
+  allNotes: boolean
+  archive: boolean
+  views: boolean
+  types: boolean
 }
 
 const NOTE_WIDTH_OPTIONS: readonly NoteWidthMode[] = ['normal', 'wide']
@@ -58,6 +68,8 @@ export function VaultContentSettingsSection(functionOptions: VaultContentSetting
     setDefaultNoteWidth,
     sidebarTypePluralizationEnabled,
     setSidebarTypePluralizationEnabled,
+    sidebarSectionVisibility,
+    setSidebarSectionVisibility,
     initialH1AutoRename,
     setInitialH1AutoRename,
     hideGitignoredFiles,
@@ -67,6 +79,9 @@ export function VaultContentSettingsSection(functionOptions: VaultContentSetting
   } = functionOptions
   const updateAllNotesFileVisibility = (patch: Partial<AllNotesFileVisibility>) => {
     setAllNotesFileVisibility({ ...allNotesFileVisibility, ...patch })
+  }
+  const updateSidebarSectionVisibility = (patch: Partial<SidebarSectionVisibility>) => {
+    setSidebarSectionVisibility({ ...sidebarSectionVisibility, ...patch })
   }
 
   return (
@@ -104,6 +119,12 @@ export function VaultContentSettingsSection(functionOptions: VaultContentSetting
           onChange={setSidebarTypePluralizationEnabled}
           testId="settings-sidebar-type-pluralization"
         />
+
+        <SettingsSwitchRow description="" label={t('settings.sidebarSections.inbox')} checked={sidebarSectionVisibility.inbox} onChange={(checked) => updateSidebarSectionVisibility({ inbox: checked })} testId="settings-sidebar-show-inbox" />
+        <SettingsSwitchRow description="" label={t('settings.sidebarSections.allNotes')} checked={sidebarSectionVisibility.allNotes} onChange={(checked) => updateSidebarSectionVisibility({ allNotes: checked })} testId="settings-sidebar-show-all-notes" />
+        <SettingsSwitchRow description="" label={t('settings.sidebarSections.archive')} checked={sidebarSectionVisibility.archive} onChange={(checked) => updateSidebarSectionVisibility({ archive: checked })} testId="settings-sidebar-show-archive" />
+        <SettingsSwitchRow description="" label={t('settings.sidebarSections.views')} checked={sidebarSectionVisibility.views} onChange={(checked) => updateSidebarSectionVisibility({ views: checked })} testId="settings-sidebar-show-views" />
+        <SettingsSwitchRow description="" label={t('settings.sidebarSections.types')} checked={sidebarSectionVisibility.types} onChange={(checked) => updateSidebarSectionVisibility({ types: checked })} testId="settings-sidebar-show-types" />
 
         <SettingsSwitchRow
           label={t('settings.titles.autoRename')}

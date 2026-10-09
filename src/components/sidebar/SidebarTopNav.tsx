@@ -7,6 +7,8 @@ interface SidebarTopNavProps {
   selection: SidebarSelection
   onSelect: (selection: SidebarSelection) => void
   showInbox: boolean
+  showAllNotes: boolean
+  showArchive: boolean
   inboxCount: number
   activeCount: number
   archivedCount: number
@@ -15,7 +17,7 @@ interface SidebarTopNavProps {
 }
 
 export function SidebarTopNav(options: SidebarTopNavProps) {
-  const { selection, onSelect, showInbox, inboxCount, activeCount, archivedCount, locale = 'en', loading = false } = options
+  const { selection, onSelect, showInbox, showAllNotes, showArchive, inboxCount, activeCount, archivedCount, locale = 'en', loading = false } = options
   return (
     <div className="border-b border-border" data-testid="sidebar-top-nav" style={{ padding: '4px 6px' }}>
       {showInbox && (
@@ -34,7 +36,7 @@ export function SidebarTopNav(options: SidebarTopNavProps) {
           onClick={() => onSelect({ kind: 'filter', filter: 'inbox' })}
         />
       )}
-      <NavItem
+      {showAllNotes && <NavItem
         icon={FileText}
         label={translate(locale, 'sidebar.nav.allNotes')}
         count={activeCount}
@@ -47,8 +49,8 @@ export function SidebarTopNav(options: SidebarTopNavProps) {
         badgeStyle={{ background: 'var(--muted)' }}
         activeBadgeClassName="bg-primary text-primary-foreground"
         onClick={() => onSelect({ kind: 'filter', filter: 'all' })}
-      />
-      <NavItem
+      />}
+      {showArchive && <NavItem
         icon={Archive}
         label={translate(locale, 'sidebar.nav.archive')}
         count={archivedCount}
@@ -61,7 +63,7 @@ export function SidebarTopNav(options: SidebarTopNavProps) {
         badgeStyle={{ background: 'var(--muted)' }}
         activeBadgeClassName="bg-primary text-primary-foreground"
         onClick={() => onSelect({ kind: 'filter', filter: 'archived' })}
-      />
+      />}
     </div>
   )
 }

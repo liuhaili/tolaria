@@ -1,15 +1,18 @@
 import { memo, useCallback, type MouseEvent as ReactMouseEvent } from 'react'
-import type { FolderCreationParent, FolderNode, SidebarSelection } from '../../types'
+import type { FolderCreationParent, FolderNode, SidebarSelection, VaultEntry } from '../../types'
 import { FolderNameInput } from './FolderNameInput'
 import { FolderItemRow } from './FolderItemRow'
 import { FOLDER_ROW_CONTENT_INSET, getFolderConnectorLeft, getFolderDepthIndent } from './folderTreeLayout'
 import { folderNodeKey } from './folderTreeUtils'
 import { translate, type AppLocale } from '../../lib/i18n'
+import { hasManagedVaultSegment, isInsideTolariaWorkspace } from '../../utils/managedVaultPaths'
+import { VaultTreeEntryRow } from './VaultTreeEntryRow'
 
 interface FolderTreeRowProps {
   depth: number
   expanded: Record<string, boolean>
   node: FolderNode
+  entries?: VaultEntry[]
   creationParent?: FolderCreationParent
   isCreating?: boolean
   onCancelCreateFolder?: () => void
@@ -18,6 +21,7 @@ interface FolderTreeRowProps {
   onOpenMenu: (node: FolderNode, event: ReactMouseEvent<HTMLElement>) => void
   onRenameFolder?: (folderPath: string, nextName: string) => Promise<boolean> | boolean
   onSelect: (selection: SidebarSelection) => void
+  onSelectNote?: (entry: VaultEntry) => void
   onStartRenameFolder?: (folderPath: string) => void
   onToggle: (path: string) => void
   onCancelRenameFolder?: () => void
@@ -135,6 +139,7 @@ function FolderChildren(options: FolderTreeRowProps) {
     creationParent,
     depth,
     expanded,
+    entries = [],
     isCreating,
     node,
     onCancelCreateFolder,
@@ -143,6 +148,7 @@ function FolderChildren(options: FolderTreeRowProps) {
     onOpenMenu,
     onRenameFolder,
     onSelect,
+    onSelectNote,
     onStartRenameFolder,
     onToggle,
     onCancelRenameFolder,
@@ -154,7 +160,8 @@ function FolderChildren(options: FolderTreeRowProps) {
     selection,
   } = options
   const isExpanded = expanded[folderNodeKey({ path: node.path, rootPath: node.rootPath ?? rootPath })] ?? false
-  const hasChildren = node.children.length > 0
+  const directEntries = entriesForFolder(entries, node.path, node.rootPath ?? rootPath)
+  const hasChildren = node.children.length > 0 || directEntries.length > 0
   if (!isExpanded || !hasChildren) return null
 
   return (
@@ -173,6 +180,7 @@ function FolderChildren(options: FolderTreeRowProps) {
           depth={depth + 1}
           expanded={expanded}
           node={child}
+          entries={entries}
           creationParent={creationParent}
           isCreating={isCreating}
           onCancelCreateFolder={onCancelCreateFolder}
@@ -181,6 +189,7 @@ function FolderChildren(options: FolderTreeRowProps) {
           onOpenMenu={onOpenMenu}
           onRenameFolder={onRenameFolder}
           onSelect={onSelect}
+          onSelectNote={onSelectNote}
           onStartRenameFolder={onStartRenameFolder}
           onToggle={onToggle}
           onCancelRenameFolder={onCancelRenameFolder}
@@ -191,6 +200,9 @@ function FolderChildren(options: FolderTreeRowProps) {
           rootPath={rootPath}
           selection={selection}
         />
+      ))}
+      {onSelectNote && directEntries.map((entry) => (
+        <VaultTreeEntryRow key={entry.path} depth={depth + 1} entry={entry} onSelect={onSelectNote} />
       ))}
     </div>
   )
@@ -227,12 +239,14 @@ export const FolderTreeRow = memo(function FolderTreeRow(options: FolderTreeRowP
     expanded,
     isCreating = false,
     node,
+    entries = [],
     onCancelCreateFolder,
     onCreateFolderSubmit,
     onDeleteFolder,
     onOpenMenu,
     onRenameFolder,
     onSelect,
+    onSelectNote,
     onStartRenameFolder,
     onToggle,
     onCancelRenameFolder,
@@ -257,6 +271,7 @@ export const FolderTreeRow = memo(function FolderTreeRow(options: FolderTreeRowP
       isExpanded={isExpanded}
       isSelected={isSelected}
       node={node}
+      hasEntries={entriesForFolder(entries, node.path, nodeRootPath).length > 0}
       onOpenMenu={onOpenMenu}
       onSelect={selectFolder}
       onStartRenameFolder={canMutateFolder ? onStartRenameFolder : undefined}
@@ -295,6 +310,7 @@ export const FolderTreeRow = memo(function FolderTreeRow(options: FolderTreeRowP
         creationParent={creationParent}
         depth={depth}
         expanded={expanded}
+        entries={entries}
         isCreating={isCreating}
         node={node}
         onCancelCreateFolder={onCancelCreateFolder}
@@ -303,6 +319,7 @@ export const FolderTreeRow = memo(function FolderTreeRow(options: FolderTreeRowP
         onOpenMenu={onOpenMenu}
         onRenameFolder={onRenameFolder}
         onSelect={onSelect}
+        onSelectNote={onSelectNote}
         onStartRenameFolder={onStartRenameFolder}
         onToggle={onToggle}
         onCancelRenameFolder={onCancelRenameFolder}
@@ -316,6 +333,47 @@ export const FolderTreeRow = memo(function FolderTreeRow(options: FolderTreeRowP
     </>
   )
 })
+
+export function entriesForFolder(entries: VaultEntry[], folderPath: string, rootPath?: string): VaultEntry[] {
+  const normalizedRootPath = normalizePath(rootPath ?? '')
+  const normalizedFolderPath = normalizePath(folderPath)
+  const resolvedEntries = entries.map((entry) => ({
+    entry,
+    relativeEntryPath: relativePath(entry.path, normalizedRootPath),
+  }))
+  const hasResolvedVaultPath = resolvedEntries.some(({ relativeEntryPath }) => relativeEntryPath !== null)
+
+  if (!hasResolvedVaultPath && !normalizedFolderPath) {
+    return entries.filter((entry) => !hasManagedVaultSegment(entry.path))
+  }
+
+  return resolvedEntries.filter(({ relativeEntryPath }) => {
+    if (!relativeEntryPath || isInsideTolariaWorkspace(relativeEntryPath)) return false
+    const parentPath = relativeEntryPath.includes('/')
+      ? relativeEntryPath.slice(0, relativeEntryPath.lastIndexOf('/'))
+      : ''
+    return parentPath === normalizedFolderPath
+  }).map(({ entry }) => entry)
+}
+
+function normalizePath(path: string): string {
+  const withForwardSlashes = path.replace(/\\/g, '/')
+  return withForwardSlashes
+    .replace(/^\/\/\?\//, '')
+    .replace(/^\/+|\/+$/g, '')
+}
+
+function relativePath(entryPath: string, rootPath: string): string | null {
+  const normalizedEntryPath = normalizePath(entryPath)
+  if (!rootPath) return normalizedEntryPath
+  const normalizedRootPath = normalizePath(rootPath)
+  const rootPrefix = `${normalizedRootPath}/`
+  const isWindowsPath = /^[a-z]:\//i.test(normalizedRootPath)
+  const matchesRoot = normalizedEntryPath.startsWith(rootPrefix)
+    || (isWindowsPath && normalizedEntryPath.toLocaleLowerCase().startsWith(rootPrefix.toLocaleLowerCase()))
+  if (!matchesRoot) return null
+  return normalizedEntryPath.slice(normalizedRootPath.length + 1)
+}
 
 function resolveFolderTreeRowState(options: Pick<FolderTreeRowProps, 'expanded' | 'node' | 'renamingFolderPath' | 'rootPath' | 'selection'>) {
   const { expanded, node, renamingFolderPath, rootPath, selection } = options

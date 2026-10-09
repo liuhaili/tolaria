@@ -1,8 +1,8 @@
 import { useCallback, memo } from 'react'
-import type { FolderCreationParent, FolderNode, SidebarSelection, VaultEntry, ViewDefinition, ViewFile } from '../types'
+import type { FolderCreationParent, FolderNode, SidebarSectionVisibility, SidebarSelection, VaultEntry, ViewDefinition, ViewFile } from '../types'
 import { KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import { FolderTree } from './FolderTree'
+import { NoteTree } from './NoteTree'
 import { computeReorder, useEntryCounts, useSidebarCollapsed, useSidebarSections } from './sidebar/sidebarHooks'
 import {
   ContextMenuOverlay,
@@ -30,6 +30,9 @@ interface SidebarProps {
   selection: SidebarSelection
   onSelect: (selection: SidebarSelection) => void
   onSelectNote?: (entry: VaultEntry) => void
+  onCreateNote?: () => void
+  onCreateDiagram?: (title: string) => Promise<void>
+  onMoveNoteInTree?: (note: VaultEntry, parent: VaultEntry | null) => void | Promise<void>
   onCreateType?: (type: string) => void
   onCreateNewType?: () => void
   onCustomizeType?: (typeName: string, icon: string, color: string) => void
@@ -59,6 +62,7 @@ interface SidebarProps {
   vaultRootPath?: string
   workspaceOrder?: readonly string[]
   showInbox?: boolean
+  sidebarSectionVisibility?: SidebarSectionVisibility
   inboxCount?: number
   allNotesFileVisibility?: AllNotesFileVisibility
   pluralizeTypeLabels?: boolean
@@ -66,6 +70,7 @@ interface SidebarProps {
   onCollapse?: () => void
   onGoBack?: () => void
   onGoForward?: () => void
+  onOpenCommandPalette?: () => void
   canGoBack?: boolean
   canGoForward?: boolean
   loading?: boolean
@@ -75,6 +80,10 @@ interface SidebarNavigationProps
   extends Pick<
   SidebarProps,
   | 'entries'
+  | 'onSelectNote'
+  | 'onCreateNote'
+  | 'onCreateDiagram'
+  | 'onMoveNoteInTree'
   | 'selection'
   | 'onSelect'
   | 'onSelectFavorite'
@@ -86,6 +95,7 @@ interface SidebarNavigationProps
   | 'onUpdateViewDefinition'
   | 'onReorderViews'
   | 'folders'
+  | 'entries'
   | 'onCreateFolder'
   | 'onRenameFolder'
   | 'onDeleteFolder'
@@ -98,6 +108,7 @@ interface SidebarNavigationProps
   | 'vaultRootPath'
   | 'workspaceOrder'
   | 'showInbox'
+  | 'sidebarSectionVisibility'
   | 'inboxCount'
   | 'onCreateNewType'
   | 'locale'
@@ -124,6 +135,7 @@ type SidebarFavoritesNavigationProps = Pick<
   | 'entries'
   | 'selection'
   | 'onSelect'
+  | 'onSelectNote'
   | 'onSelectFavorite'
   | 'onReorderFavorites'
   | 'groupCollapsed'
@@ -172,6 +184,11 @@ type SidebarTypesNavigationProps = Pick<
 type SidebarFoldersNavigationProps = Pick<
   SidebarNavigationProps,
   | 'loading'
+  | 'entries'
+  | 'onSelectNote'
+  | 'onCreateNote'
+  | 'onCreateDiagram'
+  | 'onMoveNoteInTree'
   | 'folders'
   | 'selection'
   | 'onSelect'
@@ -331,19 +348,11 @@ function SidebarTypesNavigation(options: SidebarTypesNavigationProps) {
 function SidebarFoldersNavigation(options: SidebarFoldersNavigationProps) {
   const {
     loading,
-    folders,
-    selection,
-    onSelect,
-    onCreateFolder,
-    onRenameFolder,
-    onDeleteFolder,
-    folderFileActions,
-    renamingFolderPath,
-    onStartRenameFolder,
-    onCancelRenameFolder,
-    onCanDropNoteOnFolder,
-    onMoveNoteToFolder,
-    vaultRootPath,
+    entries,
+    onSelectNote,
+    onCreateNote,
+    onCreateDiagram,
+    onMoveNoteInTree,
     groupCollapsed,
     toggleGroup,
     locale,
@@ -360,34 +369,20 @@ function SidebarFoldersNavigation(options: SidebarFoldersNavigationProps) {
   }
 
   return (
-    <FolderTree
-      folders={folders ?? []}
-      selection={selection}
-      onSelect={onSelect}
-      onCreateFolder={onCreateFolder}
-      onRenameFolder={onRenameFolder}
-      onDeleteFolder={onDeleteFolder}
-      folderFileActions={folderFileActions}
-      renamingFolderPath={renamingFolderPath}
-      onStartRenameFolder={onStartRenameFolder}
-      onCancelRenameFolder={onCancelRenameFolder}
-      onCanDropNote={onCanDropNoteOnFolder}
-      onMoveNoteToFolder={onMoveNoteToFolder}
-      collapsed={groupCollapsed.folders}
-      locale={locale}
-      onToggle={() => toggleGroup('folders')}
-      vaultRootPath={vaultRootPath}
-    />
+    <NoteTree entries={entries ?? []} onCreateNote={onCreateNote} onCreateDiagram={onCreateDiagram} onSelectNote={onSelectNote} onMoveNote={onMoveNoteInTree} />
   )
 }
 
 function SidebarTopNavigation(props: SidebarNavigationProps) {
+  const visibility = props.sidebarSectionVisibility ?? { inbox: true, allNotes: true, archive: true, views: true, types: true }
   return (
     <>
       <SidebarTopNav
         selection={props.selection}
         onSelect={props.onSelect}
-        showInbox={props.showInbox ?? true}
+        showInbox={visibility.inbox && (props.showInbox ?? true)}
+        showAllNotes={visibility.allNotes}
+        showArchive={visibility.archive}
         inboxCount={props.inboxCount ?? 0}
         activeCount={props.activeCount}
         archivedCount={props.archivedCount}
@@ -412,12 +407,13 @@ function SidebarTopNavigation(props: SidebarNavigationProps) {
 }
 
 function SidebarViewAndTypeNavigation(props: SidebarNavigationProps) {
+  const visibility = props.sidebarSectionVisibility ?? { inbox: true, allNotes: true, archive: true, views: true, types: true }
   const views = props.views ?? []
   const hasViews = props.loading || views.length > 0 || !!props.onCreateView
 
   return (
     <>
-      {hasViews && (
+      {visibility.views && hasViews && (
         <SidebarViewsNavigation
           loading={props.loading}
           views={views}
@@ -435,7 +431,7 @@ function SidebarViewAndTypeNavigation(props: SidebarNavigationProps) {
           locale={props.locale}
         />
       )}
-      <SidebarTypesNavigation
+      {visibility.types && <SidebarTypesNavigation
         loading={props.loading}
         entries={props.entries}
         visibleSections={props.visibleSections}
@@ -452,21 +448,28 @@ function SidebarViewAndTypeNavigation(props: SidebarNavigationProps) {
         onCreateNewType={props.onCreateNewType}
         workspaceOrder={props.workspaceOrder}
         locale={props.locale}
-      />
+      />}
     </>
   )
 }
 
 function SidebarNavigation(props: SidebarNavigationProps) {
+  const visibility = props.sidebarSectionVisibility ?? { inbox: true, allNotes: true, archive: true, views: true, types: true }
+  const folders = filterHiddenSystemFolders(props.folders ?? [], visibility)
   return (
     <nav className="flex-1 overflow-y-auto">
       <SidebarTopNavigation {...props} />
       <SidebarViewAndTypeNavigation {...props} />
       <SidebarFoldersNavigation
         loading={props.loading}
-        folders={props.folders ?? []}
+        folders={folders}
+        entries={props.entries}
         selection={props.selection}
         onSelect={props.onSelect}
+        onSelectNote={props.onSelectNote}
+        onCreateNote={props.onCreateNote}
+        onCreateDiagram={props.onCreateDiagram}
+        onMoveNoteInTree={props.onMoveNoteInTree}
         onCreateFolder={props.onCreateFolder}
         onRenameFolder={props.onRenameFolder}
         onDeleteFolder={props.onDeleteFolder}
@@ -483,6 +486,19 @@ function SidebarNavigation(props: SidebarNavigationProps) {
       />
     </nav>
   )
+}
+
+function filterHiddenSystemFolders(folders: FolderNode[], visibility: SidebarSectionVisibility): FolderNode[] {
+  return folders.flatMap((folder) => {
+    const hiddenFolderNames = [
+      'attachments',
+      'tolaria',
+      ...(!visibility.types ? ['type'] : []),
+      ...(!visibility.views ? ['views'] : []),
+    ]
+    if (hiddenFolderNames.includes(folder.name)) return []
+    return [{ ...folder, children: filterHiddenSystemFolders(folder.children, visibility) }]
+  })
 }
 
 function useSidebarDndSensors() {
@@ -614,6 +630,10 @@ function SidebarRuntimeNavigation({
       entries={props.entries}
       selection={props.selection}
       onSelect={props.onSelect}
+      onSelectNote={props.onSelectNote}
+      onCreateNote={props.onCreateNote}
+      onCreateDiagram={props.onCreateDiagram}
+      onMoveNoteInTree={props.onMoveNoteInTree}
       onSelectFavorite={props.onSelectFavorite}
       onReorderFavorites={props.onReorderFavorites}
       views={props.views}
@@ -635,6 +655,7 @@ function SidebarRuntimeNavigation({
       vaultRootPath={props.vaultRootPath}
       workspaceOrder={props.workspaceOrder}
       showInbox={props.showInbox}
+      sidebarSectionVisibility={props.sidebarSectionVisibility}
       inboxCount={props.inboxCount}
       locale={props.locale}
       loading={props.loading}
@@ -698,6 +719,7 @@ export const Sidebar = memo(function Sidebar(props: SidebarProps) {
         onCollapse={props.onCollapse}
         onGoBack={props.onGoBack}
         onGoForward={props.onGoForward}
+        onOpenCommandPalette={props.onOpenCommandPalette}
         canGoBack={props.canGoBack}
         canGoForward={props.canGoForward}
       />

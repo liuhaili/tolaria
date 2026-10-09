@@ -236,3 +236,8 @@ proposed → active → superseded
 | [0181](0181-shared-cross-runtime-inline-markdown-stripping-contract.md) | Shared cross-runtime inline-markdown stripping contract | active |
 | [0182](0182-app-owned-cross-platform-pdf-rendering.md) | App-owned cross-platform PDF rendering | active |
 | [0183](0183-normalize-stale-prosemirror-selection-boundaries.md) | Normalize stale ProseMirror selection boundaries | active |
+| [0184](0184-tolaria-managed-vault-directory.md) | Tolaria-managed vault directory | active |
+| [0185](0185-note-tree-frontmatter-hierarchy.md) | Sidebar note hierarchy in Markdown frontmatter | superseded → [0188](0188-vault-tree-structure-in-tolaria-config.md) |
+| [0186](0186-offline-drawio-editor.md) | Offline draw.io editor | active |
+| [0187](0187-embedded-drawio-markdown-block.md) | Embedded draw.io Markdown blocks | active |
+| [0188](0188-vault-tree-structure-in-tolaria-config.md) | Vault tree structure and icons in tolaria/config/tree.yml | active |

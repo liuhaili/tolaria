@@ -451,7 +451,7 @@ export function buildRelationshipGroups(
 
 const isActive = (e: VaultEntry) => !e.archived
 const isMarkdown = (e: VaultEntry) => e.fileKind === 'markdown' || !e.fileKind
-const ATTACHMENTS_FOLDER = 'attachments'
+const INTERNAL_NOTE_FOLDERS = ['attachments', 'tolaria']
 
 function applySubFilter(entries: VaultEntry[], subFilter: NoteListFilter): VaultEntry[] {
   if (subFilter === 'archived') return entries.filter((e) => e.archived)
@@ -470,7 +470,7 @@ function normalizeFolderPath(path: string): string {
 }
 
 function isVisibleMarkdownNote(entry: VaultEntry): boolean {
-  return isMarkdown(entry) && !isInFolder(entry.path, ATTACHMENTS_FOLDER)
+  return isMarkdown(entry) && !INTERNAL_NOTE_FOLDERS.some(folder => isInFolder(entry.path, folder))
 }
 
 export function isAllNotesEntry(

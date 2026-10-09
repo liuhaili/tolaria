@@ -25,7 +25,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ActionTooltip, type ActionTooltipCopy } from '@/components/ui/action-tooltip'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import { WorkspaceInitialsBadge } from './WorkspaceInitialsBadge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1134,25 +1133,6 @@ function CopyGitUrlMenuItem({
   )
 }
 
-function BreadcrumbSeparator() {
-  return <span aria-hidden="true" className="shrink-0 text-border">›</span>
-}
-
-function WorkspaceCrumb({ entry }: Pick<BreadcrumbBarProps, 'entry'>) {
-  const workspace = entry.workspace
-  if (!workspace) return null
-
-  return (
-    <>
-      <WorkspaceInitialsBadge
-        className="shrink-0"
-        testId="breadcrumb-workspace-label"
-        workspace={workspace}
-      />
-      <BreadcrumbSeparator />
-    </>
-  )
-}
 
 function BreadcrumbTitle({
   content,
@@ -1161,12 +1141,8 @@ function BreadcrumbTitle({
   loadingTitle,
   onRenameFilename,
 }: Pick<BreadcrumbBarProps, 'content' | 'entry' | 'locale' | 'loadingTitle' | 'onRenameFilename'>) {
-  const typeLabel = entry.isA ?? 'Note'
   return (
     <div className="breadcrumb-bar__title-content flex items-center gap-1.5 min-w-0 text-sm text-muted-foreground">
-      <WorkspaceCrumb entry={entry} />
-      <span className="shrink-0">{typeLabel}</span>
-      <BreadcrumbSeparator />
       <div className="flex min-w-0 items-center gap-1 truncate">
         {loadingTitle
           ? <BreadcrumbTitleSkeleton />

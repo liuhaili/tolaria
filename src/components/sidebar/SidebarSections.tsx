@@ -1,7 +1,7 @@
 import { closestCenter, DndContext, type DragEndEvent, type useSensors } from '@dnd-kit/core'
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ArrowLeft, ArrowRight, Palette, PencilSimple, Plus, SidebarSimple, Trash } from '@phosphor-icons/react'
+import { ArrowLeft, ArrowRight, List, Palette, PencilSimple, Plus, SidebarSimple, Trash } from '@phosphor-icons/react'
 import type { CSSProperties, ReactNode, Ref } from 'react'
 import { ActionTooltip } from '@/components/ui/action-tooltip'
 import { Button } from '@/components/ui/button'
@@ -219,6 +219,7 @@ export const SidebarTitleBar = ({
   onCollapse,
   onGoBack,
   onGoForward,
+  onOpenCommandPalette,
   canGoBack = false,
   canGoForward = false,
 }: {
@@ -226,6 +227,7 @@ export const SidebarTitleBar = ({
   onCollapse?: () => void
   onGoBack?: () => void
   onGoForward?: () => void
+  onOpenCommandPalette?: () => void
   canGoBack?: boolean
   canGoForward?: boolean
 }) => {
@@ -233,11 +235,12 @@ export const SidebarTitleBar = ({
   const collapseLabel = translate(locale, 'sidebar.action.collapse')
   const backLabel = translate(locale, 'command.navigation.goBack')
   const forwardLabel = translate(locale, 'command.navigation.goForward')
+  const menuLabel = translate(locale, 'menu.view.commandPalette')
 
   return (
     <div
       ref={dragRegionRef}
-      className="shrink-0 flex items-center border-b border-border"
+      className="sidebar-title-bar shrink-0 flex items-center border-b border-border"
       style={{
         height: 52,
         padding: '0 8px',
@@ -247,6 +250,11 @@ export const SidebarTitleBar = ({
       }}
     >
       <div className="flex items-center gap-5" style={{ WebkitAppRegion: 'no-drag' } as CSSProperties}>
+        {onOpenCommandPalette && (
+          <SidebarTitleBarAction label={menuLabel} onClick={onOpenCommandPalette}>
+            <List size={16} weight="regular" />
+          </SidebarTitleBarAction>
+        )}
         {onCollapse && (
           <SidebarTitleBarAction label={collapseLabel} shortcut={SIDEBAR_COLLAPSE_SHORTCUT} onClick={onCollapse}>
             <SidebarSimple size={16} weight="regular" />

@@ -310,6 +310,12 @@ pub(crate) fn extract_properties(
     let mut properties = HashMap::new();
 
     for (key, value) in data {
+        if key == "_parent_note" {
+            if let serde_json::Value::String(_) = value {
+                properties.insert(key.clone(), value.clone());
+            }
+            continue;
+        }
         if FrontmatterKey::new(key).is_reserved() {
             continue;
         }

@@ -12,6 +12,7 @@ interface FolderItemRowProps {
   isExpanded: boolean
   isSelected: boolean
   node: FolderNode
+  hasEntries?: boolean
   onOpenMenu: (node: FolderNode, event: ReactMouseEvent<HTMLElement>) => void
   onSelect: () => void
   onStartRenameFolder?: (folderPath: string) => void
@@ -64,6 +65,7 @@ export function FolderItemRow(options: FolderItemRowProps) {
     isExpanded,
     isSelected,
     node,
+    hasEntries = false,
     onOpenMenu,
     onSelect,
     onStartRenameFolder,
@@ -72,7 +74,7 @@ export function FolderItemRow(options: FolderItemRowProps) {
     onCanDropNote,
     onMoveNoteToFolder,
   } = options
-  const hasChildren = node.children.length > 0
+  const hasChildren = node.children.length > 0 || hasEntries
   const { handleRenameDoubleClick, handleSelectClick } = useFolderRowInteractions({
     hasChildren,
     onRenameFolder: onStartRenameFolder ? () => onStartRenameFolder(node.path) : undefined,

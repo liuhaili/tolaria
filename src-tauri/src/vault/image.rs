@@ -17,12 +17,12 @@ fn sanitize_filename(name: &str) -> String {
 /// Image file extensions considered valid for drag-drop import.
 const IMAGE_EXTENSIONS: &[&str] = &["jpg", "jpeg", "png", "gif", "webp", "svg", "bmp", "tiff"];
 
-/// Prepare the attachments directory and generate a unique target path.
+/// Prepare Tolaria's managed attachments directory and generate a unique target path.
 pub(super) fn prepare_attachment_path(
     vault_path: &str,
     filename: &str,
 ) -> Result<std::path::PathBuf, String> {
-    let attachments_dir = Path::new(vault_path).join("attachments");
+    let attachments_dir = Path::new(vault_path).join("tolaria").join("attachments");
     fs::create_dir_all(&attachments_dir)
         .map_err(|e| format!("Failed to create attachments directory: {}", e))?;
 
@@ -34,7 +34,7 @@ pub(super) fn prepare_attachment_path(
     Ok(attachments_dir.join(unique_name))
 }
 
-/// Save an uploaded image to the vault's attachments directory.
+/// Save an uploaded image to Tolaria's managed attachments directory.
 /// Returns the absolute path to the saved file.
 pub fn save_image(vault_path: &str, filename: &str, data: &str) -> Result<String, String> {
     use base64::Engine;
@@ -50,7 +50,7 @@ pub fn save_image(vault_path: &str, filename: &str, data: &str) -> Result<String
     Ok(target_path.to_string_lossy().to_string())
 }
 
-/// Copy an image file from a source path into the vault's attachments directory.
+/// Copy an image file from a source path into Tolaria's managed attachments directory.
 /// Used for Tauri native drag-drop which provides absolute file paths.
 /// Returns the absolute path to the saved file.
 pub fn copy_image_to_vault(vault_path: &str, source_path: &str) -> Result<String, String> {
@@ -109,6 +109,7 @@ mod tests {
 
         let saved_path = result.unwrap();
         assert!(std::path::Path::new(&saved_path).exists());
+        assert!(saved_path.contains("tolaria"));
         assert!(saved_path.contains("attachments"));
         assert!(saved_path.contains("test.png"));
 
@@ -122,7 +123,7 @@ mod tests {
 
         let dir = TempDir::new().unwrap();
         let vault_path = dir.path().to_str().unwrap();
-        let attachments = dir.path().join("attachments");
+        let attachments = dir.path().join("tolaria").join("attachments");
         assert!(!attachments.exists());
 
         let data = base64::engine::general_purpose::STANDARD.encode(b"test");
@@ -154,6 +155,7 @@ mod tests {
 
         let saved_path = result.unwrap();
         assert!(std::path::Path::new(&saved_path).exists());
+        assert!(saved_path.contains("tolaria"));
         assert!(saved_path.contains("attachments"));
         assert!(saved_path.contains("source.png"));
 

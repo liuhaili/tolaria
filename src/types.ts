@@ -138,6 +138,11 @@ export interface Settings {
   date_display_format?: DateDisplayFormat | null
   note_width_mode?: NoteWidthMode | null
   sidebar_type_pluralization_enabled?: boolean | null
+  sidebar_inbox_visible?: boolean | null
+  sidebar_all_notes_visible?: boolean | null
+  sidebar_archive_visible?: boolean | null
+  sidebar_views_visible?: boolean | null
+  sidebar_types_visible?: boolean | null
   initial_h1_auto_rename_enabled?: boolean | null
   ai_features_enabled?: boolean | null
   default_ai_agent?: AiAgentId | null
@@ -149,6 +154,14 @@ export interface Settings {
   all_notes_show_images?: boolean | null
   all_notes_show_unsupported?: boolean | null
   multi_workspace_enabled?: boolean | null
+}
+
+export interface SidebarSectionVisibility {
+  inbox: boolean
+  allNotes: boolean
+  archive: boolean
+  views: boolean
+  types: boolean
 }
 
 export interface AiWorkspaceConversationSetting {

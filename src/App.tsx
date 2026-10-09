@@ -1,7 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { Sidebar } from './components/Sidebar'
 import { NoteList } from './components/NoteList'
 import { LazyEditor } from './components/LazyEditor'
+import { EMPTY_DIAGRAM, diagramFileStem } from './utils/drawio'
+import { joinVaultPath } from './utils/notePathIdentity'
+import { cacheNoteContent } from './hooks/useTabManagement'
 import { ResizeHandle } from './components/ResizeHandle'
 import { CreateTypeDialog } from './components/CreateTypeDialog'
 import { CreateViewDialog } from './components/CreateViewDialog'
@@ -44,6 +47,7 @@ import { useUpdater, restartApp } from './hooks/useUpdater'
 import { useAutoSync } from './hooks/useAutoSync'
 import { useConflictResolver } from './hooks/useConflictResolver'
 import { useVaultConfig } from './hooks/useVaultConfig'
+import { useVaultTree } from './hooks/useVaultTree'
 import { useOnboarding } from './hooks/useOnboarding'
 import { useGettingStartedClone } from './hooks/useGettingStartedClone'
 import { useNetworkStatus } from './hooks/useNetworkStatus'
@@ -118,6 +122,8 @@ import {
   vaultPathForEntry,
 } from './utils/workspaces'
 import { notePathsMatch } from './utils/notePathIdentity'
+import { relativeVaultKey, withVaultTreeParent, applyVaultTreeIcons } from './utils/vaultTree'
+import { getVaultTree, updateVaultTree, subscribeVaultTree } from './utils/vaultTreeStore'
 import { activeGitRepositories } from './utils/gitRepositories'
 import { entrySupportsPreviewSourceToggle } from './utils/filePreview'
 import { isMarkdownEntry } from './utils/typeDefinitions'
@@ -328,6 +334,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     [vaultSwitcher.allVaults],
   )
   const { config: vaultConfig, updateConfig } = useVaultConfig(resolvedPath)
+  useVaultTree(resolvedPath)
   const gitFeaturesEnabled = areGitFeaturesEnabled(settings)
   const automaticGitEnabled = gitFeaturesEnabled && !noteWindowParams
   const handleGitSetupPreferenceChange = useCallback((preference: GitSetupPreference) => {
@@ -378,6 +385,11 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
     multiWorkspaceEnabled,
     visibleWorkspacePathList,
   })
+  const vaultTreeDefinition = useSyncExternalStore(subscribeVaultTree, getVaultTree)
+  const sidebarEntries = useMemo(
+    () => applyVaultTreeIcons(visibleEntries, vaultTreeDefinition),
+    [visibleEntries, vaultTreeDefinition],
+  )
   const runtimeMissingVaultPath = vault.unavailableVaultPath
   const {
     markInternalWrite: markRecentVaultWrite,
@@ -885,6 +897,35 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
   const handleRemoveNoteIcon = useCallback(async (path: string) => {
     await notes.handleDeleteProperty(path, 'icon')
   }, [notes])
+
+  const handleMoveNoteInTree = useCallback(async (note: VaultEntry, parent: VaultEntry | null) => {
+    const key = relativeVaultKey(note.path, resolvedPath)
+    if (!key) return
+    const parentKey = parent ? relativeVaultKey(parent.path, resolvedPath) : null
+    updateVaultTree(withVaultTreeParent(getVaultTree(), key, parentKey || null))
+  }, [resolvedPath])
+
+  const handleCreateDiagram = useCallback(async (title: string) => {
+    const targetVault = notes.tabs.find(tab => tab.entry.path === notes.activeTabPath)?.entry
+    const vaultPath = targetVault ? vaultPathForEntry(targetVault, resolvedPath) : resolvedPath
+    if (!vaultPath) throw new Error('No writable vault')
+    const stem = diagramFileStem(title)
+    const collision = vault.entries.some(entry => notePathsMatch(entry.path, joinVaultPath(vaultPath, `${stem}.drawio`)))
+    const filename = `${stem}${collision ? `-${crypto.randomUUID().slice(0, 8)}` : ''}.drawio`
+    const path = joinVaultPath(vaultPath, filename)
+    const create = isTauri() ? invoke : mockInvoke
+    await create('create_note_content', { path, content: EMPTY_DIAGRAM, vaultPath })
+    const entries = await vault.reloadVault()
+    const entry = entries.find(entry => notePathsMatch(entry.path, path))
+    if (!entry) throw new Error('Diagram was created but could not be indexed')
+    await notes.handleSelectNote(entry)
+    trackEvent('diagram_created', { format: 'drawio' })
+  }, [notes, resolvedPath, vault])
+
+  const handleDiagramSaved = useCallback((path: string, content: string) => {
+    cacheNoteContent(path, content)
+    setNoteTabs(tabs => tabs.map(tab => tab.entry.path === path ? { ...tab, content } : tab))
+  }, [setNoteTabs])
 
   const handleSetNoteIconCommand = useCallback(() => {
     setInspectorCollapsed(false)
@@ -1750,13 +1791,13 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
           {sidebarVisible && (
             <>
               <div className="app__sidebar" style={{ width: layout.sidebarWidth }}>
-                <Sidebar entries={visibleEntries} folders={vault.folders} views={vault.views} selection={effectiveSelection} onSelect={handleSetSelection} onSelectNote={notes.handleSelectNote} onSelectFavorite={handleOpenFavorite} onReorderFavorites={entryActions.handleReorderFavorites} onCreateType={notes.handleCreateNoteImmediate} onCreateNewType={dialogs.openCreateType} onCustomizeType={entryActions.handleCustomizeType} onUpdateTypeTemplate={entryActions.handleUpdateTypeTemplate} onReorderSections={entryActions.handleReorderSections} onRenameSection={entryActions.handleRenameSection} onDeleteType={handleDeleteType} onToggleTypeVisibility={entryActions.handleToggleTypeVisibility} onCreateFolder={handleCreateFolder} onRenameFolder={folderActions.renameFolder} onDeleteFolder={folderActions.requestDeleteFolder} folderFileActions={fileActions.folderActions} renamingFolderPath={folderActions.renamingFolderPath} onStartRenameFolder={folderActions.startFolderRename} onCancelRenameFolder={folderActions.cancelFolderRename} onCanDropNoteOnFolder={noteRetargetingUi.canDropNoteOnFolder} onMoveNoteToFolder={noteRetargetingUi.moveIntoFolder} onCreateView={dialogs.openCreateView} onEditView={handleEditView} onDeleteView={handleDeleteView} onUpdateViewDefinition={handleSidebarUpdateViewDefinition} onReorderViews={canReorderSavedViews ? viewOrdering.onReorderViews : undefined} showInbox={explicitOrganizationEnabled} inboxCount={inboxCount} allNotesFileVisibility={allNotesFileVisibility} pluralizeTypeLabels={settings.sidebar_type_pluralization_enabled ?? true} onCollapse={handleCollapseSidebar} onGoBack={handleGoBack} onGoForward={handleGoForward} canGoBack={canGoBack} canGoForward={canGoForward} locale={appLocale} loading={isVaultContentLoading} vaultRootPath={resolvedPath} workspaceOrder={vaultWorkspaceOrder} />
+                <Sidebar entries={sidebarEntries} folders={vault.folders} views={vault.views} selection={effectiveSelection} onSelect={handleSetSelection} onSelectNote={notes.handleSelectNote} onCreateNote={() => notes.handleCreateNoteImmediate()} onCreateDiagram={handleCreateDiagram} onMoveNoteInTree={handleMoveNoteInTree} onSelectFavorite={handleOpenFavorite} onReorderFavorites={entryActions.handleReorderFavorites} onCreateType={notes.handleCreateNoteImmediate} onCreateNewType={dialogs.openCreateType} onCustomizeType={entryActions.handleCustomizeType} onUpdateTypeTemplate={entryActions.handleUpdateTypeTemplate} onReorderSections={entryActions.handleReorderSections} onRenameSection={entryActions.handleRenameSection} onDeleteType={handleDeleteType} onToggleTypeVisibility={entryActions.handleToggleTypeVisibility} onCreateFolder={handleCreateFolder} onRenameFolder={folderActions.renameFolder} onDeleteFolder={folderActions.requestDeleteFolder} folderFileActions={fileActions.folderActions} renamingFolderPath={folderActions.renamingFolderPath} onStartRenameFolder={folderActions.startFolderRename} onCancelRenameFolder={folderActions.cancelFolderRename} onCanDropNoteOnFolder={noteRetargetingUi.canDropNoteOnFolder} onMoveNoteToFolder={noteRetargetingUi.moveIntoFolder} onCreateView={dialogs.openCreateView} onEditView={handleEditView} onDeleteView={handleDeleteView} onUpdateViewDefinition={handleSidebarUpdateViewDefinition} onReorderViews={canReorderSavedViews ? viewOrdering.onReorderViews : undefined} showInbox={explicitOrganizationEnabled} inboxCount={inboxCount} allNotesFileVisibility={allNotesFileVisibility} pluralizeTypeLabels={settings.sidebar_type_pluralization_enabled ?? true} sidebarSectionVisibility={{ inbox: settings.sidebar_inbox_visible ?? false, allNotes: settings.sidebar_all_notes_visible ?? false, archive: settings.sidebar_archive_visible ?? false, views: settings.sidebar_views_visible ?? false, types: settings.sidebar_types_visible ?? false }} onCollapse={handleCollapseSidebar} onGoBack={handleGoBack} onGoForward={handleGoForward} onOpenCommandPalette={dialogs.openCommandPalette} canGoBack={canGoBack} canGoForward={canGoForward} locale={appLocale} loading={isVaultContentLoading} vaultRootPath={resolvedPath} workspaceOrder={vaultWorkspaceOrder} />
               </div>
               <ResizeHandle onResize={layout.handleSidebarResize} />
             </>
           )}
           {noteListVisible && (
-            <>
+            <div className="app__note-list--tree-hidden">
               <div className={`app__note-list${aiActivity.highlightElement === 'notelist' ? ' ai-highlight' : ''}`} style={{ width: layout.noteListWidth }}>
                 {effectiveSelection.kind === 'filter' && effectiveSelection.filter === 'pulse' ? (
                   <PulseView vaultPath={gitSurfaces.historyRepositoryPath} onOpenNote={handlePulseOpenNote} refreshKey={gitHistoryRefreshKey} sidebarCollapsed={!sidebarVisible} onExpandSidebar={() => handleSetViewMode('all')} repositories={gitRepositories} selectedRepositoryPath={gitSurfaces.historyRepositoryPath} onRepositoryChange={gitSurfaces.setHistoryRepositoryPath} locale={appLocale} />
@@ -1765,10 +1806,11 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
                 )}
               </div>
               <ResizeHandle onResize={layout.handleNoteListResize} />
-            </>
+            </div>
           )}
           <div className={`app__editor${aiActivity.highlightElement === 'editor' || aiActivity.highlightElement === 'tab' ? ' ai-highlight' : ''}`}>
             <LazyEditor
+              onDiagramSaved={handleDiagramSaved}
               tabs={notes.tabs}
               activeTabPath={notes.activeTabPath}
               isVaultLoading={isVaultContentLoading}
@@ -1832,7 +1874,7 @@ function MainApp({ noteWindowParams }: { noteWindowParams: NoteWindowParams | nu
               canGoForward={canGoForward}
               onGoBack={handleGoBack}
               onGoForward={handleGoForward}
-              leftPanelsCollapsed={!sidebarVisible && !noteListVisible}
+              leftPanelsCollapsed={!sidebarVisible}
               onFileCreated={vaultBridge.handleAgentFileCreated}
               onFileModified={vaultBridge.handleAgentFileModified}
               onVaultChanged={vaultBridge.handleAgentVaultChanged}

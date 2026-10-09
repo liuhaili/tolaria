@@ -138,43 +138,8 @@ function AppMenuButton({ locale, sections }: { locale: AppLocale; sections: Read
   )
 }
 
-function HorizontalMenuBar({ sections }: { sections: ReadonlyArray<MenuSection> }) {
-  return (
-    <div
-      className="hidden h-full min-[760px]:flex"
-      data-testid="desktop-horizontal-menu"
-    >
-      {sections.map((section) => (
-        <DropdownMenu key={section.label} modal={false}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-full rounded-none px-3 text-[13px] font-normal text-foreground/75 hover:bg-foreground/10 hover:text-foreground"
-              data-no-drag
-            >
-              {section.label}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" sideOffset={0} className="min-w-[220px]">
-            <MenuSectionItems section={section} />
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ))}
-    </div>
-  )
-}
-
 export function LinuxMenuButton({ locale = 'en' }: { locale?: AppLocale } = {}) {
   const sections = getMenuSections(locale)
 
-  return (
-    <>
-      <div className="min-[760px]:hidden">
-        <AppMenuButton locale={locale} sections={sections} />
-      </div>
-      <HorizontalMenuBar sections={sections} />
-    </>
-  )
+  return <AppMenuButton locale={locale} sections={sections} />
 }

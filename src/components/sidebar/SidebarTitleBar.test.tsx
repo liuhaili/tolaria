@@ -40,6 +40,16 @@ describe('SidebarTitleBar', () => {
     expect(onGoForward).not.toHaveBeenCalled()
   })
 
+  it('opens the compact main menu from the top left', () => {
+    const onOpenCommandPalette = vi.fn()
+
+    renderTitleBar({ onOpenCommandPalette })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Command Palette' }))
+
+    expect(onOpenCommandPalette).toHaveBeenCalledOnce()
+  })
+
   it('omits controls when sidebar callbacks are absent', () => {
     renderTitleBar()
 

@@ -215,11 +215,11 @@ describe('mockHandlers coverage', () => {
       vault_path: '/vault',
       filename: 'diagram.png',
       data: 'base64',
-    })).toBe('/vault/attachments/12345-diagram.png')
+    })).toBe('/vault/tolaria/attachments/12345-diagram.png')
 
     expect(mockHandlers.copy_image_to_vault({
       vault_path: '/vault',
       source_path: '/tmp/screenshot.jpg',
-    })).toBe('/vault/attachments/12345-screenshot.jpg')
+    })).toBe('/vault/tolaria/attachments/12345-screenshot.jpg')
   })
 })

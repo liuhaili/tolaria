@@ -5,8 +5,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
+    "dev": "node scripts/install-drawio.mjs && vite",
+    "build": "node scripts/install-drawio.mjs && tsc -b && vite build",
+    "drawio:install": "node scripts/install-drawio.mjs",
     "codacy:gate": "node scripts/codacy-gate.mjs",
     "codacy:gate:test": "node --test scripts/codacy-gate-lib.test.mjs",
     "agent-docs": "node scripts/build-agent-docs.mjs",

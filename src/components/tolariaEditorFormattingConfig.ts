@@ -48,6 +48,8 @@ import { HTML_BLOCK_DEFAULT_HEIGHT, HTML_BLOCK_TYPE } from '../utils/htmlBlockMa
 import { MATH_BLOCK_TYPE } from '../utils/mathMarkdown'
 import { MERMAID_BLOCK_TYPE, mermaidFenceSource } from '../utils/mermaidMarkdown'
 import { TLDRAW_BLOCK_TYPE, TLDRAW_DEFAULT_HEIGHT } from '../utils/tldrawMarkdown'
+import { DRAWIO_BLOCK_TYPE, EMPTY_DRAWIO_SNAPSHOT } from '../utils/drawioMarkdown'
+import { translate } from '../lib/i18n'
 import { calloutIconForType } from './calloutIcons'
 
 export type TolariaSlashMenuItem = DefaultReactSuggestionItem & {
@@ -133,6 +135,7 @@ const TOLARIA_SLASH_MENU_ICONS: Partial<Record<string, PhosphorIcon>> = {
   code_block: CodeBlock,
   date: CalendarBlank,
   datetime: CalendarDots,
+  drawio: FlowArrow,
   divider: Minus,
   emoji: Smiley,
   file: File,
@@ -444,6 +447,7 @@ export function getTolariaSlashMenuItems(
       createMathSlashMenuItem(editor, labels),
       createSandboxBlockSlashMenuItem(editor, labels),
       createWhiteboardSlashMenuItem(editor),
+      createBlockSlashMenuItem(editor, { key: 'drawio', title: translate('zh-CN', 'drawio.insert'), aliases: ['drawio', 'draw.io', '流程图', '绘图', 'diagram'], type: DRAWIO_BLOCK_TYPE, props: { snapshot: EMPTY_DRAWIO_SNAPSHOT }, eventName: 'editor_drawio_inserted' }),
       ...dateTimeItems,
     ],
   )

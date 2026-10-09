@@ -70,6 +70,7 @@ interface Tab {
 }
 
 export interface EditorProps {
+  onDiagramSaved?: (path: string, content: string) => void
   tabs: Tab[]
   activeTabPath: string | null
   isVaultLoading?: boolean

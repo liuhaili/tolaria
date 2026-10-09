@@ -18,6 +18,12 @@ function assetUrl(path: string): string {
 }
 
 describe('resolveVaultAttachmentPath', () => {
+  it('resolves attachments stored under the Tolaria workspace directory', () => {
+    expect(resolveVaultAttachmentPath({ url: 'tolaria/attachments/report.pdf', vaultPath: '/vault' })).toBe(
+      '/vault/tolaria/attachments/report.pdf',
+    )
+  })
+
   it('resolves relative attachment URLs inside the active vault', () => {
     expect(resolveVaultAttachmentPath({ url: 'attachments/report.pdf', vaultPath: '/vault' })).toBe(
       '/vault/attachments/report.pdf',
@@ -80,6 +86,15 @@ describe('resolveVaultAttachmentPath', () => {
 })
 
 describe('vault attachment URL/path conversions', () => {
+  it('preserves the Tolaria workspace attachment path for new imports', () => {
+    expect(
+      portableAttachmentPathFromCurrentVaultPath({
+        path: '/vault/tolaria/attachments/report.pdf',
+        vaultPath: '/vault',
+      }),
+    ).toBe('tolaria/attachments/report.pdf')
+  })
+
   it('builds asset URLs from portable attachment paths', () => {
     expect(
       vaultAttachmentAssetUrl({

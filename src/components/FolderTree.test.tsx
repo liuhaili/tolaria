@@ -2,10 +2,12 @@ import { useState, type ComponentProps } from 'react'
 import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { FolderTree } from './FolderTree'
+import { entriesForFolder } from './folder-tree/FolderTreeRow'
 import { FOLDER_ROW_SINGLE_CLICK_DELAY_MS } from './folder-tree/useFolderRowInteractions'
 import { FOLDER_ROW_NESTING_INDENT, getFolderConnectorLeft } from './folder-tree/folderTreeLayout'
 import { CREATE_NOTE_IN_FOLDER_EVENT } from '../hooks/noteCreationRequests'
 import type { FolderNode, SidebarSelection } from '../types'
+import type { VaultEntry } from '../types'
 
 const mockFolders: FolderNode[] = [
   {
@@ -22,6 +24,41 @@ const mockFolders: FolderNode[] = [
 
 const defaultSelection: SidebarSelection = { kind: 'filter', filter: 'all' }
 const vaultRootPath = '/Users/luca/Laputa'
+
+function treeEntry(path: string, title: string, icon: string | null = null): VaultEntry {
+  return {
+    path,
+    filename: path.split('/').at(-1) ?? '',
+    title,
+    icon,
+    isA: 'Note',
+    aliases: [],
+    belongsTo: [],
+    relatedTo: [],
+    status: null,
+    archived: false,
+    modifiedAt: null,
+    createdAt: null,
+    fileSize: 0,
+    snippet: '',
+    wordCount: 0,
+    relationships: {},
+    color: null,
+    order: null,
+    sidebarLabel: null,
+    template: null,
+    sort: null,
+    view: null,
+    visible: true,
+    organized: true,
+    favorite: false,
+    favoriteIndex: null,
+    listPropertiesDisplay: [],
+    outgoingLinks: [],
+    properties: {},
+    hasH1: true,
+  }
+}
 
 function renderTree(props: Partial<ComponentProps<typeof FolderTree>> = {}) {
   const onSelect = props.onSelect ?? vi.fn()
@@ -93,6 +130,54 @@ describe('FolderTree', () => {
     )
 
     expect(screen.getByText('Laputa')).toBeInTheDocument()
+  })
+
+  it('renders root and nested notes directly in the folder tree', () => {
+    vi.useFakeTimers()
+    const onSelectNote = vi.fn()
+    render(
+      <FolderTree
+        folders={mockFolders}
+        entries={[
+          treeEntry('/Users/luca/Laputa/home.md', 'Home', '🏠'),
+          treeEntry('/Users/luca/Laputa/projects/roadmap.md', 'Roadmap'),
+        ]}
+        selection={defaultSelection}
+        onSelect={vi.fn()}
+        onSelectNote={onSelectNote}
+        vaultRootPath={vaultRootPath}
+      />,
+    )
+
+    expect(screen.getByTestId('vault-tree-entry:/Users/luca/Laputa/home.md')).toHaveTextContent('Home')
+    expect(screen.getByText('🏠')).toBeInTheDocument()
+    expect(screen.queryByText('Roadmap')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByTestId('folder-row:projects'))
+    act(() => vi.advanceTimersByTime(FOLDER_ROW_SINGLE_CLICK_DELAY_MS))
+    fireEvent.click(screen.getByTestId('vault-tree-entry:/Users/luca/Laputa/projects/roadmap.md'))
+
+    expect(onSelectNote).toHaveBeenCalledWith(expect.objectContaining({ title: 'Roadmap' }))
+    vi.useRealTimers()
+  })
+
+  it('matches Windows extended vault paths with the entry paths returned by the vault scan', () => {
+    const entry = treeEntry('C:\\Users\\liuhaili\\Desktop\\notes\\welcome.md', 'Welcome')
+    const windowsVaultPath = '\\\\?\\C:\\Users\\liuhaili\\Desktop\\notes'
+    expect(entriesForFolder([entry], '', windowsVaultPath)).toEqual([entry])
+
+    render(
+      <FolderTree
+        folders={[]}
+        entries={[entry]}
+        selection={defaultSelection}
+        onSelect={vi.fn()}
+        onSelectNote={vi.fn()}
+        vaultRootPath={windowsVaultPath}
+      />,
+    )
+
+    expect(screen.getByTestId('vault-tree-entry:C:\\Users\\liuhaili\\Desktop\\notes\\welcome.md')).toHaveTextContent('Welcome')
   })
 
   it('renders one scoped root per mounted workspace and selects folders inside that root', () => {

@@ -224,6 +224,50 @@ describe('Sidebar', () => {
     expect(screen.queryByText('Favorites')).not.toBeInTheDocument()
   })
 
+  it('hides disabled navigation sections and their protected folders', () => {
+    render(
+      <Sidebar
+        entries={mockEntries}
+        selection={defaultSelection}
+        onSelect={() => {}}
+        onCreateView={() => {}}
+        folders={[
+          { name: 'type', path: 'type', children: [] },
+          { name: 'views', path: 'views', children: [] },
+          { name: 'attachments', path: 'attachments', children: [] },
+          { name: 'tolaria', path: 'tolaria', children: [] },
+        ]}
+        sidebarSectionVisibility={{ inbox: false, allNotes: false, archive: false, views: false, types: false }}
+      />,
+    )
+
+    expect(screen.queryByText('Inbox')).not.toBeInTheDocument()
+    expect(screen.queryByText('All Notes')).not.toBeInTheDocument()
+    expect(screen.queryByText('Archive')).not.toBeInTheDocument()
+    expect(screen.queryByText('VIEWS')).not.toBeInTheDocument()
+    expect(screen.queryByText('Projects')).not.toBeInTheDocument()
+    expect(screen.queryByText('type')).not.toBeInTheDocument()
+    expect(screen.queryByText('views')).not.toBeInTheDocument()
+    expect(screen.queryByText('attachments')).not.toBeInTheDocument()
+    expect(screen.queryByText('tolaria')).not.toBeInTheDocument()
+  })
+
+  it('renders and opens notes from the note tree', () => {
+    const onSelectNote = vi.fn()
+    render(
+      <Sidebar
+        entries={[mockEntries[0]]}
+        selection={defaultSelection}
+        onSelect={vi.fn()}
+        onSelectNote={onSelectNote}
+      />,
+    )
+
+    fireEvent.click(screen.getByTestId('note-tree-entry:/vault/project/build-app.md'))
+
+    expect(onSelectNote).toHaveBeenCalledWith(mockEntries[0])
+  })
+
   it('renders section group headers only for types present in entries', () => {
     render(<Sidebar entries={mockEntries} selection={defaultSelection} onSelect={() => {}} />)
     expect(screen.getByText('Projects')).toBeInTheDocument()
@@ -237,11 +281,10 @@ describe('Sidebar', () => {
     expect(screen.queryByText('Types')).not.toBeInTheDocument()
   })
 
-  it('does not show inline entity names — sections are flat rows', () => {
+  it('shows notes in the separate note tree', () => {
     render(<Sidebar entries={mockEntries} selection={defaultSelection} onSelect={() => {}} />)
-    // Individual entries should NOT appear inline in the sidebar
-    expect(screen.queryByText('Build Laputa App')).not.toBeInTheDocument()
-    expect(screen.queryByText('Grow Newsletter')).not.toBeInTheDocument()
+    expect(screen.getByTestId('note-tree-entry:/vault/project/build-app.md')).toHaveTextContent('Build Laputa App')
+    expect(screen.getByTestId('note-tree-entry:/vault/responsibility/grow-newsletter.md')).toHaveTextContent('Grow Newsletter')
   })
 
   it('shows note count chip on type sections', () => {
@@ -282,8 +325,7 @@ describe('Sidebar', () => {
   it('renders Topics section header', () => {
     render(<Sidebar entries={mockEntries} selection={defaultSelection} onSelect={() => {}} />)
     expect(screen.getByText('Topics')).toBeInTheDocument()
-    // Topic entries are NOT shown inline
-    expect(screen.queryByText('Software Development')).not.toBeInTheDocument()
+    expect(screen.getByTestId('note-tree-entry:/vault/topic/software-development.md')).toHaveTextContent('Software Development')
   })
 
   it('does not render + buttons on type sections', () => {
@@ -411,9 +453,9 @@ describe('Sidebar', () => {
       expect(screen.getByText('Recipes')).toBeInTheDocument()
     })
 
-    it('does not show inline instances — sections are flat rows', () => {
+    it('shows custom type instances in the note tree', () => {
       render(<Sidebar entries={entriesWithCustomTypes} selection={defaultSelection} onSelect={() => {}} onCreateType={() => {}} />)
-      expect(screen.queryByText('Pasta Carbonara')).not.toBeInTheDocument()
+      expect(screen.getByTestId('note-tree-entry:/vault/recipe/pasta.md')).toHaveTextContent('Pasta Carbonara')
     })
 
     it('shows section for type with zero active entries when type definition exists', () => {
@@ -1083,7 +1125,7 @@ describe('Sidebar', () => {
     expect(topNav.children[2].textContent).toContain('Archive1')
   })
 
-  it('does not show inline entries — no child items in type sections', () => {
+  it('shows entries in the note tree, not as type-section children', () => {
     const entriesWithEmoji: VaultEntry[] = [
       {
         path: '/vault/project/build-app.md', filename: 'build-app.md', title: 'Build App',
@@ -1095,7 +1137,7 @@ describe('Sidebar', () => {
       },
     ]
     render(<Sidebar entries={entriesWithEmoji} selection={defaultSelection} onSelect={() => {}} />)
-    expect(screen.queryByText('Build App')).not.toBeInTheDocument()
+    expect(screen.getByTestId('note-tree-entry:/vault/project/build-app.md')).toHaveTextContent('Build App')
   })
 
   describe('FAVORITES section', () => {
@@ -1110,7 +1152,8 @@ describe('Sidebar', () => {
     }
 
     function getFavoriteAndTypeRows(favoriteTitle = 'My Favorite Note') {
-      const favoriteLabel = screen.getByText(favoriteTitle)
+      const favoriteSection = screen.getByText('FAVORITES').closest('.border-b') as HTMLElement
+      const favoriteLabel = within(favoriteSection).getByText(favoriteTitle)
       const favoriteRow = favoriteLabel.closest('.cursor-pointer')
       const typeLabel = screen.getByText('Projects')
       const typeRow = typeLabel.closest('.cursor-pointer')
@@ -1153,7 +1196,7 @@ describe('Sidebar', () => {
     it('shows FAVORITES section when there are favorites', () => {
       render(<Sidebar entries={[...mockEntries, favEntry]} selection={defaultSelection} onSelect={() => {}} />)
       expect(screen.getByText('FAVORITES')).toBeInTheDocument()
-      expect(screen.getByText('My Favorite Note')).toBeInTheDocument()
+      expect(within(screen.getByText('FAVORITES').closest('.border-b') as HTMLElement).getByText('My Favorite Note')).toBeInTheDocument()
     })
 
     it('preserves plain square brackets in favorite titles', () => {
@@ -1161,7 +1204,7 @@ describe('Sidebar', () => {
 
       render(<Sidebar entries={[...mockEntries, bracketedFavorite]} selection={defaultSelection} onSelect={() => {}} />)
 
-      expect(screen.getByText('[26Q2] Tolaria MVP')).toBeInTheDocument()
+      expect(within(screen.getByText('FAVORITES').closest('.border-b') as HTMLElement).getByText('[26Q2] Tolaria MVP')).toBeInTheDocument()
     })
 
     it('hides FAVORITES section when no favorites', () => {
@@ -1172,7 +1215,7 @@ describe('Sidebar', () => {
     it('calls onSelect with favorites filter when clicking a favorite', () => {
       const onSelect = vi.fn()
       render(<Sidebar entries={[...mockEntries, favEntry]} selection={defaultSelection} onSelect={onSelect} />)
-      fireEvent.click(screen.getByText('My Favorite Note'))
+      fireEvent.click(within(screen.getByText('FAVORITES').closest('.border-b') as HTMLElement).getByText('My Favorite Note'))
       expect(onSelect).toHaveBeenCalledWith({ kind: 'filter', filter: 'favorites' })
     })
 
@@ -1200,7 +1243,7 @@ describe('Sidebar', () => {
 
       render(<Sidebar entries={[...mockEntries, emojiFavorite]} selection={defaultSelection} onSelect={() => {}} />)
 
-      const emojiRow = screen.getByText('Emoji Favorite').closest('.cursor-pointer')
+      const emojiRow = within(screen.getByText('FAVORITES').closest('.border-b') as HTMLElement).getByText('Emoji Favorite').closest('.cursor-pointer')
       expect(within(emojiRow as HTMLElement).getByText('🚀')).toBeInTheDocument()
       expect(emojiRow?.querySelector('svg')).toBeNull()
     })
@@ -1237,7 +1280,7 @@ describe('Sidebar', () => {
 
       render(<Sidebar entries={[...mockEntries, customType, recipeFavorite]} selection={defaultSelection} onSelect={() => {}} />)
 
-      const recipeRow = screen.getByText('Sourdough').closest('.cursor-pointer')
+      const recipeRow = within(screen.getByText('FAVORITES').closest('.border-b') as HTMLElement).getByText('Sourdough').closest('.cursor-pointer')
       const recipeIcon = recipeRow?.querySelector('svg')
 
       expect(recipeIcon?.getAttribute('style')).toContain('var(--muted-foreground)')

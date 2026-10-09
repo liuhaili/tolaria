@@ -29,7 +29,9 @@ use cache_io::{
 /// Bump this when VaultEntry fields change to force a full rescan.
 /// v12: fix gray_matter YAML sanitization (unquoted colons / hash comments in list items)
 /// v14: preserve scalar-array custom frontmatter properties in VaultEntry
-const CACHE_VERSION: u32 = 14;
+/// v15: retain note-tree parent references when rebuilding the sidebar.
+/// v16: recognize draw.io diagrams as editable text rather than binary files.
+const CACHE_VERSION: u32 = 16;
 const CACHE_WRITE_LOCK_STALE_SECS: u64 = 30;
 
 #[cfg(test)]

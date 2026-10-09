@@ -75,6 +75,8 @@ CODE-HEALTH-REPORT.md
 # Local environment variables (never commit)
 .env
 .env.local
+.drawio-downloads/
+public/drawio/
 .env.*.local
 
 # Codacy's runtime cache is local, while the pinned launcher, the CLI mode file

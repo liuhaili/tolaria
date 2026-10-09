@@ -474,9 +474,9 @@ mod tests {
     use super::*;
     #[cfg(desktop)]
     use std::cell::RefCell;
-    #[cfg(desktop)]
+    #[cfg(all(desktop, unix))]
     use std::os::unix::process::ExitStatusExt;
-    #[cfg(desktop)]
+    #[cfg(all(desktop, unix))]
     use std::process::{ExitStatus, Output};
     #[cfg(desktop)]
     use std::rc::Rc;
@@ -526,6 +526,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(unix)]
     fn parses_defaults_output_variants() {
         for (code, stdout, expected) in [
             (0, b" Maximize \n".to_vec(), Some("Maximize")),
@@ -598,10 +599,12 @@ mod tests {
         }
     }
 
+    #[cfg(all(desktop, unix))]
     fn exit_status(code: i32) -> ExitStatus {
         ExitStatus::from_raw(code << 8)
     }
 
+    #[cfg(all(desktop, unix))]
     fn output(code: i32, stdout: Vec<u8>) -> Output {
         Output {
             status: exit_status(code),

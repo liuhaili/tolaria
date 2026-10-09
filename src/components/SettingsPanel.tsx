@@ -115,6 +115,7 @@ interface SettingsDraft {
   dateDisplayFormat: DateDisplayFormat
   defaultNoteWidth: NoteWidthMode
   sidebarTypePluralizationEnabled: boolean
+  sidebarSectionVisibility: { inbox: boolean; allNotes: boolean; archive: boolean; views: boolean; types: boolean }
   initialH1AutoRename: boolean
   hideGitignoredFiles: boolean
   allNotesFileVisibility: AllNotesFileVisibility
@@ -170,6 +171,8 @@ interface SettingsBodyProps {
   setDefaultNoteWidth: (value: NoteWidthMode) => void
   sidebarTypePluralizationEnabled: boolean
   setSidebarTypePluralizationEnabled: (value: boolean) => void
+  sidebarSectionVisibility: { inbox: boolean; allNotes: boolean; archive: boolean; views: boolean; types: boolean }
+  setSidebarSectionVisibility: (value: { inbox: boolean; allNotes: boolean; archive: boolean; views: boolean; types: boolean }) => void
   locale: AppLocale
   systemLocale: AppLocale
   initialH1AutoRename: boolean
@@ -231,6 +234,13 @@ function createSettingsDraft(settings: Settings, explicitOrganizationEnabled: bo
     dateDisplayFormat: normalizeDateDisplayFormat(settings.date_display_format) ?? DEFAULT_DATE_DISPLAY_FORMAT,
     defaultNoteWidth: normalizeNoteWidthMode(settings.note_width_mode) ?? DEFAULT_NOTE_WIDTH_MODE,
     sidebarTypePluralizationEnabled: settings.sidebar_type_pluralization_enabled ?? true,
+    sidebarSectionVisibility: {
+      inbox: settings.sidebar_inbox_visible ?? false,
+      allNotes: settings.sidebar_all_notes_visible ?? false,
+      archive: settings.sidebar_archive_visible ?? false,
+      views: settings.sidebar_views_visible ?? false,
+      types: settings.sidebar_types_visible ?? false,
+    },
     initialH1AutoRename: settings.initial_h1_auto_rename_enabled ?? true,
     hideGitignoredFiles: shouldHideGitignoredFiles(settings),
     allNotesFileVisibility: resolveAllNotesFileVisibility(settings),
@@ -282,6 +292,11 @@ function buildSettingsFromDraft(settings: Settings, draft: SettingsDraft): Setti
     date_display_format: draft.dateDisplayFormat,
     note_width_mode: draft.defaultNoteWidth,
     sidebar_type_pluralization_enabled: draft.sidebarTypePluralizationEnabled,
+    sidebar_inbox_visible: draft.sidebarSectionVisibility.inbox,
+    sidebar_all_notes_visible: draft.sidebarSectionVisibility.allNotes,
+    sidebar_archive_visible: draft.sidebarSectionVisibility.archive,
+    sidebar_views_visible: draft.sidebarSectionVisibility.views,
+    sidebar_types_visible: draft.sidebarSectionVisibility.types,
     initial_h1_auto_rename_enabled: draft.initialH1AutoRename,
     ai_features_enabled: draft.aiFeaturesEnabled,
     default_ai_agent: draft.defaultAiAgent,
@@ -612,6 +627,8 @@ function SettingsBodyFromDraft(options: SettingsBodyFromDraftProps) {
       setDefaultNoteWidth={(value) => updateDraft('defaultNoteWidth', value)}
       sidebarTypePluralizationEnabled={draft.sidebarTypePluralizationEnabled}
       setSidebarTypePluralizationEnabled={(value) => updateDraft('sidebarTypePluralizationEnabled', value)}
+      sidebarSectionVisibility={draft.sidebarSectionVisibility}
+      setSidebarSectionVisibility={(value) => updateDraft('sidebarSectionVisibility', value)}
       initialH1AutoRename={draft.initialH1AutoRename}
       setInitialH1AutoRename={(value) => updateDraft('initialH1AutoRename', value)}
       hideGitignoredFiles={draft.hideGitignoredFiles}
@@ -696,7 +713,7 @@ function SettingsSyncAndAppearanceSections(options: SettingsBodyProps) {
 }
 
 function SettingsContentSections(options: SettingsBodyProps) {
-  const { t, dateDisplayFormat, setDateDisplayFormat, defaultNoteWidth, setDefaultNoteWidth, sidebarTypePluralizationEnabled, setSidebarTypePluralizationEnabled, initialH1AutoRename, setInitialH1AutoRename, hideGitignoredFiles, setHideGitignoredFiles, allNotesFileVisibility, setAllNotesFileVisibility } = options
+  const { t, dateDisplayFormat, setDateDisplayFormat, defaultNoteWidth, setDefaultNoteWidth, sidebarTypePluralizationEnabled, setSidebarTypePluralizationEnabled, sidebarSectionVisibility, setSidebarSectionVisibility, initialH1AutoRename, setInitialH1AutoRename, hideGitignoredFiles, setHideGitignoredFiles, allNotesFileVisibility, setAllNotesFileVisibility } = options
   return (
     <SettingsSection id={SETTINGS_SECTION_IDS.content}>
       <VaultContentSettingsSection
@@ -707,6 +724,8 @@ function SettingsContentSections(options: SettingsBodyProps) {
         setDefaultNoteWidth={setDefaultNoteWidth}
         sidebarTypePluralizationEnabled={sidebarTypePluralizationEnabled}
         setSidebarTypePluralizationEnabled={setSidebarTypePluralizationEnabled}
+        sidebarSectionVisibility={sidebarSectionVisibility}
+        setSidebarSectionVisibility={setSidebarSectionVisibility}
         initialH1AutoRename={initialH1AutoRename}
         setInitialH1AutoRename={setInitialH1AutoRename}
         hideGitignoredFiles={hideGitignoredFiles}

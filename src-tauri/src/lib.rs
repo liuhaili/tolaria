@@ -23,6 +23,7 @@ pub mod git;
 pub mod hermes_cli;
 mod hermes_discovery;
 mod html_block_protocol;
+mod drawio_protocol;
 pub mod kiro_cli;
 mod kiro_discovery;
 #[cfg(any(test, all(desktop, target_os = "linux")))]
@@ -385,6 +386,8 @@ macro_rules! app_invoke_handler {
             commands::list_views,
             commands::save_view_cmd,
             commands::delete_view_cmd,
+            commands::load_vault_tree,
+            commands::save_vault_tree,
             vault_watcher::start_vault_watcher,
             vault_watcher::stop_vault_watcher
         ]
@@ -414,6 +417,7 @@ pub fn run() {
 
     let builder = tauri::Builder::default()
         .register_uri_scheme_protocol("tolaria-html-block", html_block_protocol::handle_request)
+        .register_uri_scheme_protocol("tolaria-drawio", drawio_protocol::handle_request)
         .manage(commands::StartupTimingState::default());
 
     #[cfg(desktop)]
