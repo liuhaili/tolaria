@@ -1,12 +1,11 @@
 import { CaretDown, CaretRight, FileText, Plus, Smiley } from '@phosphor-icons/react'
 import { DndContext, DragOverlay, PointerSensor, pointerWithin, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core'
-import { useMemo, useRef, useState, useSyncExternalStore, type MouseEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import type { VaultEntry } from '../types'
 import { cn } from '@/lib/utils'
 import { buildNoteTree, canAssignNoteParent, type NoteTreeNode } from '../utils/noteTree'
 import { hasManagedVaultSegment } from '../utils/managedVaultPaths'
-import { applyVaultTreeIcons, relativeVaultKey, withVaultTreeIcon, type VaultTree } from '../utils/vaultTree'
-import { getVaultTree, subscribeVaultTree, updateVaultTree } from '../utils/vaultTreeStore'
+import { isMarkdownEntry } from '../utils/typeDefinitions'
 import { resolveNoteIcon } from '../utils/noteIcon'
 import { Button } from './ui/button'
 import { EmojiPicker } from './EmojiPicker'
@@ -15,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
 import { translate } from '../lib/i18n'
 import { isEmoji } from '../utils/emoji'
 import { trackEvent } from '../lib/telemetry'
+import { useDismissableSidebarLayer } from './sidebar/sidebarHooks'
 
 const t = (key: Parameters<typeof translate>[1]) => translate('zh-CN', key)
 
@@ -40,8 +40,9 @@ function NoteTreeRowIcon({ entry }: { entry: VaultEntry }) {
 interface NoteTreeProps {
   entries: VaultEntry[]
   vaultRootPath?: string
-  onCreateNote?: () => void
+  onCreateNote?: (parent?: VaultEntry) => void
   onSetNoteEmoji?: (note: VaultEntry, emoji: string) => Promise<void>
+  onSetNoteOrder?: (note: VaultEntry, order: number) => Promise<void>
   onSelectNote?: (entry: VaultEntry) => void
   onMoveNote?: (note: VaultEntry, parent: VaultEntry | null) => void | Promise<void>
 }
@@ -51,11 +52,10 @@ function isManagedEntry(entry: VaultEntry): boolean {
   return hasManagedVaultSegment(entry.path)
 }
 
-function NoteTreeRow({ depth, node, entries, tree, onSelectNote, onOpenContext, onEditEmoji }: {
+function NoteTreeRow({ depth, node, entries, onSelectNote, onOpenContext, onEditEmoji }: {
   depth: number
   node: NoteTreeNode
   entries: VaultEntry[]
-  tree: VaultTree
   onSelectNote?: (entry: VaultEntry) => void
   onOpenContext: (entry: VaultEntry, event: MouseEvent<HTMLButtonElement>) => void
   onEditEmoji: (entry: VaultEntry) => void
@@ -65,7 +65,7 @@ function NoteTreeRow({ depth, node, entries, tree, onSelectNote, onOpenContext, 
   const draggable = useDraggable({ id: node.entry.path })
   const droppable = useDroppable({ id: node.entry.path })
   const activeEntry = entries.find((entry) => entry.path === draggable.active?.id)
-  const isValidDrop = droppable.isOver && !!activeEntry && canAssignNoteParent(activeEntry, node.entry, entries, tree)
+  const isValidDrop = droppable.isOver && !!activeEntry && canAssignNoteParent(activeEntry, node.entry, entries)
   const emoji = entryEmoji(node.entry)
 
   return (
@@ -105,7 +105,7 @@ function NoteTreeRow({ depth, node, entries, tree, onSelectNote, onOpenContext, 
         onClick={() => onEditEmoji(node.entry)}
       >{emoji || <Smiley size={17} />}</Button>
       </div>
-      {expanded && node.children.map((child) => <NoteTreeRow key={child.entry.path} depth={depth + 1} node={child} entries={entries} tree={tree} onSelectNote={onSelectNote} onOpenContext={onOpenContext} onEditEmoji={onEditEmoji} />)}
+      {expanded && node.children.map((child) => <NoteTreeRow key={child.entry.path} depth={depth + 1} node={child} entries={entries} onSelectNote={onSelectNote} onOpenContext={onOpenContext} onEditEmoji={onEditEmoji} />)}
     </>
   )
 }
@@ -115,34 +115,69 @@ function NoteTreeRootDropZone() {
   return <div ref={setNodeRef} data-testid="note-tree-root-drop" className={`h-12 rounded ${isOver ? 'bg-accent/50 ring-1 ring-primary' : ''}`} />
 }
 
-export function NoteTree({ entries, vaultRootPath, onCreateNote, onSetNoteEmoji, onSelectNote, onMoveNote }: NoteTreeProps) {
-  const tree = useSyncExternalStore(subscribeVaultTree, getVaultTree)
+export function NoteTree({ entries, onCreateNote, onSetNoteEmoji, onSetNoteOrder, onSelectNote, onMoveNote }: NoteTreeProps) {
+  const positionsRef = useRef(new Map<string, number>())
+  const pendingOrdersRef = useRef(new Set<string>())
   const visibleEntries = useMemo(
-    () => applyVaultTreeIcons(entries.filter((entry) => !isManagedEntry(entry)), tree),
-    [entries, tree],
+    () => {
+      const notes = entries.filter(entry => isMarkdownEntry(entry) && entry.filename.toLowerCase().endsWith('.md') && !isManagedEntry(entry))
+      const orderCounts = new Map<number, number>()
+      for (const entry of notes) {
+        if (entry.order != null) orderCounts.set(entry.order, (orderCounts.get(entry.order) ?? 0) + 1)
+      }
+      const assignedOrders = new Set<number>()
+      let nextOrder = Math.max(-1, ...notes.map(entry => entry.order ?? -1), ...positionsRef.current.values()) + 1
+      return notes.map(entry => {
+        const remembered = positionsRef.current.get(entry.path)
+        const duplicated = entry.order != null && (orderCounts.get(entry.order) ?? 0) > 1
+        let order = (duplicated ? remembered : entry.order) ?? remembered ?? entry.order ?? nextOrder++
+        if (assignedOrders.has(order)) order = nextOrder++
+        assignedOrders.add(order)
+        positionsRef.current.set(entry.path, order)
+        return { ...entry, order }
+      })
+    },
+    [entries],
   )
-  const nodes = useMemo(() => buildNoteTree(visibleEntries, tree), [visibleEntries, tree])
+  const nodes = useMemo(() => buildNoteTree(visibleEntries), [visibleEntries])
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   const [draggedEntry, setDraggedEntry] = useState<VaultEntry | null>(null)
   const [contextEntry, setContextEntry] = useState<VaultEntry | null>(null)
+  const contextMenuRef = useRef<HTMLDivElement>(null)
+  const closeContextMenu = useCallback(() => setContextEntry(null), [])
+  useDismissableSidebarLayer(contextMenuRef, !!contextEntry, closeContextMenu)
   const [contextPosition, setContextPosition] = useState({ x: 0, y: 0 })
   const [emojiEntry, setEmojiEntry] = useState<VaultEntry | null>(null)
   const [saveError, setSaveError] = useState(false)
+  useEffect(() => {
+    if (!onSetNoteOrder) return
+    let cancelled = false
+    void (async () => {
+      for (const entry of visibleEntries) {
+        if (cancelled) return
+        if (entries.find(note => note.path === entry.path)?.order === entry.order || pendingOrdersRef.current.has(entry.path)) continue
+        pendingOrdersRef.current.add(entry.path)
+        try {
+          await onSetNoteOrder(entry, entry.order ?? 0)
+        } catch {
+          if (!cancelled) setSaveError(true)
+        } finally {
+          pendingOrdersRef.current.delete(entry.path)
+        }
+      }
+    })()
+    return () => { cancelled = true }
+  }, [entries, visibleEntries, onSetNoteOrder])
   const [savingEmoji, setSavingEmoji] = useState(false)
   const savingEmojiRef = useRef(false)
   const editEmoji = (entry: VaultEntry) => { setContextEntry(null); setEmojiEntry(entry) }
   const saveEmoji = async (entry: VaultEntry, emoji: string) => {
-    if (savingEmojiRef.current || (emoji && !isEmoji(emoji))) return
+    if (!onSetNoteEmoji || savingEmojiRef.current || (emoji && !isEmoji(emoji))) return
     savingEmojiRef.current = true
     setSavingEmoji(true)
     setSaveError(false)
     try {
-      // Icons live in tolaria/config/tree.yml so they persist for files that
-      // cannot carry frontmatter (ADR 0188); `onSetNoteEmoji` mirrors the value
-      // into note metadata where the vault supports it.
-      const key = relativeVaultKey(entry.path, vaultRootPath)
-      if (key) updateVaultTree(withVaultTreeIcon(getVaultTree(), key, emoji))
-      await onSetNoteEmoji?.(entry, emoji)
+      await onSetNoteEmoji(entry, emoji)
       trackEvent('tree_emoji_changed', { action: emoji ? 'set' : 'remove' })
       setEmojiEntry(null)
       setContextEntry(null)
@@ -159,7 +194,7 @@ export function NoteTree({ entries, vaultRootPath, onCreateNote, onSetNoteEmoji,
     if (!over || !onMoveNote || active.id === over.id) return
     const note = visibleEntries.find((entry) => entry.path === active.id)
     const parent = over.id === 'note-tree-root' ? null : visibleEntries.find((entry) => entry.path === over.id) ?? null
-    if (note && canAssignNoteParent(note, parent, visibleEntries, tree)) {
+    if (note && canAssignNoteParent(note, parent, visibleEntries)) {
       setSaveError(false)
       void Promise.resolve(onMoveNote(note, parent)).catch(() => setSaveError(true))
     }
@@ -168,15 +203,16 @@ export function NoteTree({ entries, vaultRootPath, onCreateNote, onSetNoteEmoji,
   return (
     <div className="px-1 py-1" data-testid="note-tree">
       <div className="flex items-center justify-end px-1 pb-1">
-        {onCreateNote && <Button type="button" variant="ghost" size="icon-xs" aria-label="新建笔记" title="新建笔记" onClick={onCreateNote}><Plus size={16} /></Button>}
+        {onCreateNote && <Button type="button" variant="ghost" size="icon-xs" aria-label="新建笔记" title="新建笔记" onClick={() => onCreateNote()}><Plus size={16} /></Button>}
       </div>
       <DndContext sensors={sensors} collisionDetection={pointerWithin} onDragStart={({ active }) => setDraggedEntry(visibleEntries.find((entry) => entry.path === active.id) ?? null)} onDragCancel={() => setDraggedEntry(null)} onDragEnd={handleDragEnd}>
-          {nodes.map((node) => <NoteTreeRow key={node.entry.path} depth={0} node={node} entries={visibleEntries} tree={tree} onSelectNote={onSelectNote} onOpenContext={openContext} onEditEmoji={editEmoji} />)}
+          {nodes.map((node) => <NoteTreeRow key={node.entry.path} depth={0} node={node} entries={visibleEntries} onSelectNote={onSelectNote} onOpenContext={openContext} onEditEmoji={editEmoji} />)}
           <NoteTreeRootDropZone />
           <DragOverlay>{draggedEntry && <div className="rounded border border-border bg-popover px-3 py-2 text-sm shadow-md">{draggedEntry.title || draggedEntry.filename}</div>}</DragOverlay>
       </DndContext>
       {contextEntry && (
-        <div role="menu" className="fixed z-[1100] min-w-32 rounded border border-border bg-popover p-1 shadow-md" style={{ left: contextPosition.x, top: contextPosition.y }}>
+        <div ref={contextMenuRef} role="menu" className="fixed z-[1100] min-w-32 rounded border border-border bg-popover p-1 shadow-md" style={{ left: contextPosition.x, top: contextPosition.y }}>
+          {onCreateNote && <Button type="button" variant="ghost" role="menuitem" className="h-8 w-full justify-start px-2 text-sm" onClick={() => { const parent = contextEntry; closeContextMenu(); onCreateNote(parent) }}><Plus size={14} />{t('tree.createChild')}</Button>}
           <Button type="button" variant="ghost" className="h-8 w-full justify-start px-2 text-sm" onClick={() => { onSelectNote?.(contextEntry); setContextEntry(null) }}>打开笔记</Button>
           <Button type="button" variant="ghost" className="h-8 w-full justify-start px-2 text-sm" onClick={() => { if (onMoveNote) void Promise.resolve(onMoveNote(contextEntry, null)).catch(() => setSaveError(true)); setContextEntry(null) }}>移到顶级</Button>
           <Button type="button" variant="ghost" className="h-8 w-full justify-start px-2 text-sm" onClick={() => editEmoji(contextEntry)}>{t(entryEmoji(contextEntry) ? 'tree.emoji.change' : 'tree.emoji.add')}</Button>

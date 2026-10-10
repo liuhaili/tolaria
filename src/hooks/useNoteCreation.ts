@@ -3,9 +3,10 @@ import { invoke } from '@tauri-apps/api/core'
 import { isTauri, addMockEntry, mockInvoke } from '../mock-tauri'
 import type { VaultEntry } from '../types'
 import { slugifyNoteStem as slugify } from '../utils/noteSlug'
-import { resolveEntry } from '../utils/wikilink'
+import { canonicalWikilinkTargetForEntry, formatWikilinkRef, resolveEntry } from '../utils/wikilink'
 import { trackEvent } from '../lib/telemetry'
 import { cacheNoteContent } from './useTabManagement'
+import { NOTE_TREE_PARENT_KEY } from '../utils/noteTree'
 import {
   findByCollidingNotePath,
   joinVaultPath,
@@ -795,8 +796,10 @@ type ImmediateCreationPath =
   | 'folder_context_menu'
   | 'folder_header'
   | 'type_section'
+  | 'tree_context_menu'
 
 export interface ImmediateCreateOptions {
+  parentPath?: string
   creationPath?: ImmediateCreationPath
   format?: NoteFormat
   folderPath?: string
@@ -877,7 +880,7 @@ async function createNoteImmediate(deps: ImmediateCreateDeps, request: Immediate
   const title = slug_to_title(slug)
   const template =
     noteFormat === NOTE_FORMAT_SHEET ? null : resolveTemplate({ entries: deps.entries, typeName: noteType })
-  const defaults = resolveTypeInstanceDefaults({
+  let defaults = resolveTypeInstanceDefaults({
     entries: deps.entries,
     typeName: noteType,
   })
@@ -893,6 +896,16 @@ async function createNoteImmediate(deps: ImmediateCreateDeps, request: Immediate
       status,
     }),
     workspace: workspaceForVaultPath(creationVaultPath, deps.vaults, deps.defaultWorkspacePath),
+  }
+  const order = Math.max(Date.now(), ...deps.entries.map(note => (note.order ?? -1) + 1))
+  entry.order = order
+  defaults = defaults.filter(value => value.key !== '_order' && value.key !== NOTE_TREE_PARENT_KEY)
+  defaults.push({ key: '_order', value: order, kind: 'property' })
+  if (request.parentPath) {
+    const parent = deps.entries.find(note => note.path === request.parentPath)
+    if (!parent) return false
+    const target = canonicalWikilinkTargetForEntry(parent, creationVaultPath, entry)
+    defaults.push({ key: NOTE_TREE_PARENT_KEY, value: formatWikilinkRef(target), kind: 'property' })
   }
   const resolved = applyTypeDefaults({
     entry,

@@ -1,4 +1,5 @@
 {
+  "tree.createChild": "新增子筆記",
   "command.noMatches": "沒有匹配的命令",
   "command.palettePlaceholder": "輸入命令...",
   "command.footerNavigate": "↑↓ 導航",

@@ -1,4 +1,5 @@
 {
+  "tree.createChild": "Tạo ghi chú con",
   "command.noMatches": "Không có lệnh phù hợp",
   "command.palettePlaceholder": "Nhập một lệnh...",
   "command.footerNavigate": "↑↓ điều hướng",

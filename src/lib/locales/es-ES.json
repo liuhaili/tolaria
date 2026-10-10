@@ -1,4 +1,5 @@
 {
+  "tree.createChild": "Nueva nota secundaria",
   "command.noMatches": "No hay comandos que coincidan",
   "command.palettePlaceholder": "Escribe un comando...",
   "command.footerNavigate": "↑↓ navegar",

@@ -1,4 +1,5 @@
 {
+  "tree.createChild": "Nowa notatka podrzędna",
   "command.noMatches": "Brak pasujących poleceń",
   "command.palettePlaceholder": "Wpisz polecenie...",
   "command.footerNavigate": "↑↓ nawiguj",

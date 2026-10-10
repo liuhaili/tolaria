@@ -1,4 +1,5 @@
 {
+  "tree.createChild": "子ノートを新規作成",
   "command.noMatches": "一致するコマンドはありません",
   "command.palettePlaceholder": "コマンドを入力…",
   "command.footerNavigate": "↑↓ 移動",

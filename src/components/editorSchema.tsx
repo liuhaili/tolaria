@@ -30,6 +30,7 @@ import { createTolariaCodeBlockOptions } from './codeBlockOptions'
 import { HtmlBlock } from './HtmlBlock'
 import { drawioBlockSpec } from './drawioBlockSpec'
 import { sheetBlockSpec } from './sheetBlockSpec'
+import { viewTableBlockSpec } from './viewTableBlockSpec'
 import { mindmapBlockSpec } from './mindmapBlockSpec'
 import { NoteTitleIcon } from './NoteTitleIcon'
 import { MermaidDiagram } from './MermaidDiagram'
@@ -547,6 +548,7 @@ export const schema = BlockNoteSchema.create({
     mindmapBlock: mindmapBlockSpec,
     drawioBlock: drawioBlockSpec,
     sheetBlock: sheetBlockSpec,
+    viewTableBlock: viewTableBlockSpec,
     audio: audioBlock,
     calloutBlock,
     htmlBlock,

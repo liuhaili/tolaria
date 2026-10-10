@@ -51,5 +51,19 @@
 - `SheetEditor` 复用要点：props 为 `content`(CSV/文档) / `path`(仅作 workbook 名与去重键，块内传 `sheet-block/<blockId>`) / `onContentChange(path, content)` / `locale`(用 `useDocumentLocale()` from `markdownHighlightControlState`)。`entries`/`vaultPath`/`sourceEntry` 有默认值。
 - 已知限制：每块一个 IronCalc model（多表笔记内存上升，卸载时 free）；块内不传 vault entries → 跨笔记公式 / wikilink 单元格不可用；序列化走编辑器 450ms debounce，窗口内切笔记可能丢最后一次编辑。
 
+## 内联数据表块（ADR 0193，2026-10-09 二次实现：**块自持数据**）
+- 需求走过两版：① 先做的「行 = 笔记、列 = frontmatter 的集合视图」被用户明确否掉（*「我要的是可编辑的数据存储，不是笔记的数据表」*）→ ② 重做为 **`viewTableBlock`：数据存在块里**。
+- `viewTableBlock`（围栏 ```` ```view ````，别名 `database`/`db`/`data`；斜杠 `/view`，别名 数据库/数据表/视图）= 带类型列的记录表，**数据在围栏 JSON 里，不读也不写任何别的笔记**。
+- 围栏体 = JSON：`{title?, columns:[{id,name,type,width?,options?}], filters?:[{id,columnId,op,value}], sort?:{columnId,direction}, rows:[{列id: 值}], height?}`。**行 = 「列 id → 值」映射**（改列名不破坏数据）；行没有 id，位置即身份。删列会同步清掉所有行里的该键，以及指向它的 filter/sort。
+- 列类型（`ViewTableColumnType`）：`text`/`number`/`date`/`checkbox`/`select`/`multiSelect`/`url`。**改类型会重新规范化该列全部单元格**（`changeViewTableColumnType`），并把该列上「新类型表达不了」的 filter op 换成新类型的第一个 op。
+- 排序/筛选：`setViewTableSort`（列菜单里升序/降序/清除 + 工具条 chip）与 `addViewTableFilter`/`updateViewTableFilter`/`removeViewTableFilter`（工具条「筛选」popover，AND 组合）。**都写进围栏**（不是显示态），重开笔记保留。`viewTableVisibleRows(data, search)` = 过滤 → 搜索 → 排序，返回 `{row, index}`（index 是**原始行号**，保证编辑仍落到正确的行）；排序稳定（原始序号 tie-break），**空值恒排最后**（两个方向都是）；值的比较用 `compareViewTableCells`（number 走数值、checkbox 走 false<true、其余 `localeCompare{numeric:true}`）。**filter 的 value 为空时视为不生效**，否则输一半就会把行全藏起来。
+- 校验/降级：非 JSON 或 >200k 字符 → 保持 codeBlock（保留原围栏语言，走 `payload.language`）；规范化上限 50 列 / 2000 行 / 20 条 filter，坏列·坏单元格·坏选项静默丢弃。
+- 编辑面：行 增/删/复制/上下移（行首菜单）、列 增/删/左右移/改名/改类型/改选项/拖拽列宽、单元格按类型编辑、排序、筛选、行内搜索（搜索是瞬态、不入围栏）、`height` 可手写固定高度。
+- 文本类单元格 = 本地草稿 + blur/Enter 提交（避免每键一次 `updateBlock`）；`select`/`multiSelect` 用 Popover，输入自定义值会**同时**写进列的 `options`。
+- 🔴 **块内事件必须用「原生监听器」隔离，React 的 stopPropagation 无效**：ProseMirror 的 `mousedown` handler（`prosemirror-view` 的 `handlers.mousedown`）会重设选区并重聚焦编辑器 → 输入框一点就失焦、Radix popover 被 focus-outside 关掉。React 的事件委托挂在 app root，**在编辑器元素之上**，所以 `onMouseDown` 里的 `stopPropagation` 永远慢一步。`ViewTableBlock` 的 `useIsolatedBlockEvents` 在**块根上挂原生冒泡监听器**（mousedown/mouseup/dblclick/contextmenu/drag*/beforeinput/paste/copy/cut/key*/touch*）并就地 stopPropagation —— 块根在编辑器元素**内部**，所以先于 ProseMirror 被调用。**故意不拦** `click`/`pointerdown`/`pointerup`/`input`/`focus*`（Radix popover、复选框、列宽手柄、React `onChange` 都靠它们）。代价：块内 React **冒泡阶段**的 handler 对上述事件收不到，**块内的 keydown 必须用 `onKeyDownCapture`**；Popover 里的控件不受影响（portal 在块外）。
+- 文件：`src/utils/viewTableModel.ts`（模型·规范化·序列化·行列/filter/sort 纯函数）／`src/utils/viewTableMarkdown.ts`（codec）／`src/components/ViewTableBlock.tsx`／`src/components/view-table/{ViewTableGrid,ViewTableCell,ViewTableColumnMenu,ViewTableToolbar,columnTypes}`／`src/components/ViewTableBlock.css`／`src/components/viewTableBlockSpec.ts`／ADR `docs/adr/0193-inline-data-table-markdown-block.md`。
+- ⚠️ 上一版（集合视图）的 `viewBlockConfig.ts`／`viewBlockData.ts`／`viewMarkdown.ts`／`ViewBlock.tsx`／`viewBlockActions.tsx` 与 `Editor`/`useEditorContentModel`/`EditorContentLayout` 里下传的 `onUpdateProperty`/`onCreateNote`/`onOpenNote` **已全部删除**，别照旧记忆去找。
+- ⚠️ 与 `sheetBlock` 的分工：sheet = 自由网格 + 公式（IronCalc）；viewTable = 带类型列的记录表，无公式。两者都自持数据、都嵌在笔记内。
+
 ## 编辑器表格样式（`EditorTheme.css:1030`）
 - 该段依赖 `--table-border-color` / `--table-header-background` / `--table-cell-padding-vertical|horizontal` / `--table-font-size`，**这 5 个变量全项目无定义、无动态注入** → 除 `text-align: start` 与 `.selectedCell::after` 的 inset 外，整段被浏览器丢弃，表格外观实际由 @blocknote/mantine 默认样式决定。若要调表格外观，根因在此。

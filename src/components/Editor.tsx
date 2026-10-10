@@ -19,6 +19,7 @@ import type { NoteListItem } from '../utils/ai-context'
 import type { FrontmatterValue } from './Inspector'
 import type { FrontmatterOpOptions } from '../hooks/frontmatterOps'
 import { ResizeHandle } from './ResizeHandle'
+import { setActiveVaultPath } from './activeVaultPath'
 import { useDiffMode, type CommitDiffRequest } from '../hooks/useDiffMode'
 import { useEditorFocus } from '../hooks/useEditorFocus'
 import { useDragRegion } from '../hooks/useDragRegion'
@@ -82,7 +83,6 @@ export interface EditorProps {
   pendingCommitDiffRequest?: CommitDiffRequest | null
   onPendingCommitDiffHandled?: (requestId: number) => void
   getNoteStatus?: (path: string) => NoteStatus
-  onCreateNote?: () => void
   inspectorCollapsed: boolean
   onToggleInspector: () => void
   inspectorWidth: number
@@ -293,6 +293,9 @@ function useEditorSetup(options: EditorSetupParams) {
   const sheetFlushRef = useRef<((path: string) => void) | null>(null)
   useEffect(() => {
     vaultPathRef.current = vaultPath
+    // Blocks that render vault media (the inline data table's picture and
+    // attachment columns) read the root from this store instead of a prop.
+    setActiveVaultPath(vaultPath)
   }, [vaultPath])
   useEffect(() => {
     activeTabPathRef.current = activeTabPath

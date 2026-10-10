@@ -1,4 +1,5 @@
 {
+  "tree.createChild": "Ny underanteckning",
   "command.noMatches": "Inga matchande kommandon",
   "command.palettePlaceholder": "Skriv ett kommando...",
   "command.footerNavigate": "↑↓ navigera",

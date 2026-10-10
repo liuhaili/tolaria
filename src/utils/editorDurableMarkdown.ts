@@ -23,6 +23,7 @@ import { mermaidMarkdownCodec } from './mermaidMarkdown'
 import { tldrawMarkdownCodec } from './tldrawMarkdown'
 import { drawioMarkdownCodec } from './drawioMarkdown'
 import { sheetMarkdownCodec } from './sheetMarkdown'
+import { viewTableMarkdownCodec } from './viewTableMarkdown'
 import { mindmapMarkdownCodec } from './mindmapMarkdown'
 
 const EDITOR_DURABLE_MARKDOWN_CODECS = [
@@ -32,6 +33,7 @@ const EDITOR_DURABLE_MARKDOWN_CODECS = [
   mermaidMarkdownCodec,
   tldrawMarkdownCodec,
   sheetMarkdownCodec,
+  viewTableMarkdownCodec,
 ] as const
 
 export function preProcessDurableEditorMarkdown({ markdown }: { markdown: string }): string {

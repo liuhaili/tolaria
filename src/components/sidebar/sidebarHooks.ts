@@ -59,11 +59,15 @@ export function useOutsideClick<T extends HTMLElement>(
 ) {
   useEffect(() => {
     if (!isOpen) return
-    const handler = (event: MouseEvent) => {
+    const handler = (event: MouseEvent | PointerEvent) => {
       if (ref.current && !ref.current.contains(event.target as Node)) onClose()
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('pointerdown', handler, true)
+    document.addEventListener('mousedown', handler, true)
+    return () => {
+      document.removeEventListener('pointerdown', handler, true)
+      document.removeEventListener('mousedown', handler, true)
+    }
   }, [ref, isOpen, onClose])
 }
 

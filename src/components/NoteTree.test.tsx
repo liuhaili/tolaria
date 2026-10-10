@@ -1,12 +1,10 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { VaultEntry } from '../types'
 import { NOTE_TREE_PARENT_KEY } from '../utils/noteTree'
 import { NoteTree } from './NoteTree'
-import { bindVaultTreeStore, getVaultTree, resetVaultTreeStore } from '../utils/vaultTreeStore'
-import { EMPTY_VAULT_TREE, parseVaultTree } from '../utils/vaultTree'
 
-afterEach(() => { cleanup(); resetVaultTreeStore() })
+afterEach(cleanup)
 
 function entry(path: string, parent?: string): VaultEntry {
   return {
@@ -20,37 +18,24 @@ function entry(path: string, parent?: string): VaultEntry {
 }
 
 describe('NoteTree', () => {
-  it('sets a Unicode emoji without opening the note and restores it after reload', () => {
-    const save = vi.fn()
-    bindVaultTreeStore(EMPTY_VAULT_TREE, save)
+  it('saves an emoji through the Markdown frontmatter callback without opening the note', async () => {
+    const note = entry('/vault/note.md')
+    const save = vi.fn().mockResolvedValue(undefined)
     const onSelectNote = vi.fn()
-    const entries = [entry('/vault/diagram.drawio')]
-    const view = render(<NoteTree entries={entries} vaultRootPath="/vault" onSelectNote={onSelectNote} />)
+    render(<NoteTree entries={[note]} onSetNoteEmoji={save} onSelectNote={onSelectNote} />)
     fireEvent.click(screen.getByRole('button', { name: '添加表情' }))
     fireEvent.click(screen.getAllByTestId('emoji-option')[0])
-    const stored = getVaultTree()
-    const emoji = stored.nodes['diagram.drawio'].icon
-    expect(emoji).toBeTruthy()
-    expect(save).toHaveBeenCalledWith(stored)
+    await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ path: note.path }), expect.any(String)))
     expect(onSelectNote).not.toHaveBeenCalled()
-    view.unmount()
-    bindVaultTreeStore(parseVaultTree(JSON.parse(JSON.stringify(stored))), save)
-    render(<NoteTree entries={entries} vaultRootPath="/vault" />)
-    expect(screen.getByRole('button', { name: '更换表情' })).toHaveTextContent(emoji!)
   })
 
-  it('removes a legacy icon without changing the hierarchy or resurrecting it on reload', () => {
+  it('removes the Markdown emoji through the frontmatter callback', async () => {
     const note = { ...entry('/vault/note.md'), icon: '📚' }
-    bindVaultTreeStore({ version: 1, nodes: { 'note.md': { parent: 'parent.md', order: 2, icon: null } } }, vi.fn())
-    const view = render(<NoteTree entries={[note]} vaultRootPath="/vault" />)
+    const save = vi.fn().mockResolvedValue(undefined)
+    render(<NoteTree entries={[note]} onSetNoteEmoji={save} />)
     fireEvent.contextMenu(screen.getByTestId('note-tree-entry:/vault/note.md'))
     fireEvent.click(screen.getByRole('button', { name: '移除表情' }))
-    expect(getVaultTree().nodes['note.md']).toEqual({ parent: 'parent.md', order: 2, icon: '' })
-    const stored = parseVaultTree(getVaultTree())
-    view.unmount()
-    bindVaultTreeStore(stored, vi.fn())
-    render(<NoteTree entries={[note]} vaultRootPath="/vault" />)
-    expect(screen.getByRole('button', { name: '添加表情' })).not.toHaveTextContent('📚')
+    await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ path: note.path }), ''))
   })
   it('renders child notes below their parent and opens the selected note', () => {
     const parent = entry('/vault/project.md')
@@ -60,7 +45,7 @@ describe('NoteTree', () => {
 
     expect(screen.getByTestId('note-tree-entry:/vault/login.md')).toHaveTextContent('login')
     fireEvent.click(screen.getByTestId('note-tree-entry:/vault/login.md'))
-    expect(onSelectNote).toHaveBeenCalledWith(child)
+    expect(onSelectNote).toHaveBeenCalledWith(expect.objectContaining({ path: child.path }))
   })
 
   it('fills every row icon slot with a default icon when the note has none', () => {

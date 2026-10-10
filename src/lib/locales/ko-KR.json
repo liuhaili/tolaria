@@ -1,4 +1,5 @@
 {
+  "tree.createChild": "하위 노트 만들기",
   "command.noMatches": "일치하는 명령 없음",
   "command.palettePlaceholder": "명령어를 입력하세요...",
   "command.footerNavigate": "↑↓ 탐색",

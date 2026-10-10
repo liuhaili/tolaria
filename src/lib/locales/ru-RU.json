@@ -1,4 +1,5 @@
 {
+  "tree.createChild": "Создать дочернюю заметку",
   "command.noMatches": "Нет подходящих команд",
   "command.palettePlaceholder": "Введите команду...",
   "command.footerNavigate": "↑↓ навигация",

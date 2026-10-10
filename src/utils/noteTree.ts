@@ -1,12 +1,5 @@
 import type { VaultEntry } from '../types'
 import { resolveEntry, wikilinkTarget } from './wikilink'
-import {
-  EMPTY_VAULT_TREE,
-  normalizeVaultKey,
-  vaultTreeOrder,
-  vaultTreeParent,
-  type VaultTree,
-} from './vaultTree'
 
 export const NOTE_TREE_PARENT_KEY = '_parent_note'
 
@@ -20,30 +13,7 @@ function parentReference(entry: VaultEntry): string | null {
   return typeof value === 'string' && value.trim() ? value : null
 }
 
-/**
- * Resolve a `tree.yml` parent key into an entry. The tree file stores a
- * vault-relative path while entries carry absolute paths, so match on the
- * normalized path suffix (the same tolerance as ADR 0035 wikilink resolution).
- */
-function resolveTreeParent(entries: VaultEntry[], entry: VaultEntry, key: string): VaultEntry | null {
-  const target = normalizeVaultKey(key)
-  if (!target) return null
-  return entries.find((candidate) => {
-    if (candidate.path === entry.path) return false
-    const candidateKey = normalizeVaultKey(candidate.path)
-    return candidateKey === target || candidateKey.endsWith(`/${target}`)
-  }) ?? null
-}
-
-/**
- * A `tree.yml` parent wins outright when present, even if it no longer resolves:
- * a stale record then renders at the root (ADR 0188) rather than silently
- * reviving the superseded frontmatter value.
- */
-function parentForEntry(entry: VaultEntry, entries: VaultEntry[], tree: VaultTree): VaultEntry | null {
-  const treeParent = vaultTreeParent(tree, entry.path)
-  if (treeParent) return resolveTreeParent(entries, entry, treeParent)
-
+function parentForEntry(entry: VaultEntry, entries: VaultEntry[]): VaultEntry | null {
   const reference = parentReference(entry)
   if (!reference) return null
   const parent = resolveEntry(entries, wikilinkTarget(reference), entry)
@@ -66,40 +36,35 @@ export function canAssignNoteParent(
   note: VaultEntry,
   parent: VaultEntry | null,
   entries: VaultEntry[],
-  tree: VaultTree = EMPTY_VAULT_TREE,
 ): boolean {
   if (!parent || parent.path === note.path) return parent?.path !== note.path
   const parents = new Map<string, string>()
   for (const entry of entries) {
-    const savedParent = parentForEntry(entry, entries, tree)
+    const savedParent = parentForEntry(entry, entries)
     if (savedParent) parents.set(entry.path, savedParent.path)
   }
   parents.set(note.path, parent.path)
   return !createsCycle(note, parent.path, parents)
 }
 
-/**
- * Order siblings by `tree.yml` order (lower first). When no sibling carries an
- * explicit order the input order is preserved, so existing vaults keep their
- * current arrangement until someone actually reorders something.
- */
-function sortSiblings(nodes: NoteTreeNode[], tree: VaultTree): NoteTreeNode[] {
-  const isOrdered = nodes.some((node) => vaultTreeOrder(tree, node.entry.path) !== null)
+/** Persisted Markdown `_order` is independent of title and modification time. */
+function sortSiblings(nodes: NoteTreeNode[]): NoteTreeNode[] {
+  const isOrdered = nodes.some((node) => node.entry.order !== null)
   if (!isOrdered) return nodes
   return [...nodes].sort((left, right) => {
-    const orderLeft = vaultTreeOrder(tree, left.entry.path)
-    const orderRight = vaultTreeOrder(tree, right.entry.path)
+    const orderLeft = left.entry.order
+    const orderRight = right.entry.order
     if (orderLeft === orderRight) return 0
     return (orderLeft ?? Infinity) - (orderRight ?? Infinity)
   })
 }
 
-export function buildNoteTree(entries: VaultEntry[], tree: VaultTree = EMPTY_VAULT_TREE): NoteTreeNode[] {
+export function buildNoteTree(entries: VaultEntry[]): NoteTreeNode[] {
   const nodes = new Map(entries.map((entry) => [entry.path, { entry, children: [] as NoteTreeNode[] }]))
   const parents = new Map<string, string>()
 
   for (const entry of entries) {
-    const parent = parentForEntry(entry, entries, tree)
+    const parent = parentForEntry(entry, entries)
     if (parent) parents.set(entry.path, parent.path)
   }
 
@@ -119,9 +84,9 @@ export function buildNoteTree(entries: VaultEntry[], tree: VaultTree = EMPTY_VAU
 
   for (const node of nodes.values()) {
     if (node.children.length > 1) {
-      node.children.splice(0, node.children.length, ...sortSiblings(node.children, tree))
+      node.children.splice(0, node.children.length, ...sortSiblings(node.children))
     }
   }
 
-  return sortSiblings(roots, tree)
+  return sortSiblings(roots)
 }

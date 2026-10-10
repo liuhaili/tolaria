@@ -184,11 +184,15 @@ function isUntitledRenameTransition(
   activeTab: Tab | undefined,
   editor: ReturnType<typeof useCreateBlockNote>,
 ): boolean {
-  if (!prevPath || !nextPath || !activeTab || !isUntitledPath(prevPath)) return false
+  if (!prevPath || !nextPath || !activeTab) return false
 
   const currentHeading = getH1TextFromBlocks(editor.document)
-  if (!currentHeading || slugifyPathStem(currentHeading) !== pathStem(nextPath)) return false
-  const currentBody = trySerializeEditorBody(editor, 'untitled rename comparison')
+  if (!currentHeading || activeTab.entry.title !== currentHeading) return false
+  const headingStem = slugifyPathStem(currentHeading)
+  const nextStem = pathStem(nextPath)
+  const collisionSuffix = nextStem.slice(headingStem.length)
+  if (nextStem !== headingStem && !(nextStem.startsWith(headingStem) && /^-\d+$/.test(collisionSuffix))) return false
+  const currentBody = trySerializeEditorBody(editor, 'title rename comparison')
   if (currentBody === null) return false
 
   return renameBodiesOverlap({

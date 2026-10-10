@@ -1,4 +1,5 @@
 {
+  "tree.createChild": "Nouvelle sous-note",
   "command.noMatches": "Aucune commande correspondante",
   "command.palettePlaceholder": "Saisir une commande…",
   "command.footerNavigate": "↑↓ naviguer",

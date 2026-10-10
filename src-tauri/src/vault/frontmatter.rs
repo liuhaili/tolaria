@@ -24,7 +24,7 @@ pub(crate) struct Frontmatter {
     pub icon: Option<StringOrList>,
     #[serde(default)]
     pub color: Option<StringOrList>,
-    #[serde(rename = "_order", default)]
+    #[serde(rename = "_order", default, deserialize_with = "deserialize_order")]
     pub order: Option<i64>,
     #[serde(rename = "_sidebar_label", default)]
     pub sidebar_label: Option<StringOrList>,
@@ -56,6 +56,19 @@ pub(crate) struct Frontmatter {
     pub favorite_index: Option<i64>,
     #[serde(rename = "_list_properties_display", default)]
     pub list_properties_display: Option<Vec<String>>,
+}
+
+/// Accept quoted legacy positions without discarding the other note metadata.
+fn deserialize_order<'de, D>(deserializer: D) -> Result<Option<i64>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = Option::<serde_json::Value>::deserialize(deserializer)?;
+    Ok(match value {
+        Some(serde_json::Value::Number(number)) => number.as_i64(),
+        Some(serde_json::Value::String(text)) => text.trim().parse().ok(),
+        _ => None,
+    })
 }
 
 /// Custom deserializer for boolean fields that may arrive as strings.

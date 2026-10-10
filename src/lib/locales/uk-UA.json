@@ -1,4 +1,5 @@
 {
+  "tree.createChild": "Створити дочірню нотатку",
   "command.noMatches": "Немає відповідних команд",
   "command.palettePlaceholder": "Введіть команду...",
   "command.footerNavigate": "↑↓ навігація",

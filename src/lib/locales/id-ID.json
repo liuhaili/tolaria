@@ -1,4 +1,5 @@
 {
+  "tree.createChild": "Buat catatan anak",
   "command.noMatches": "Tidak ada perintah yang cocok",
   "command.palettePlaceholder": "Ketik perintah...",
   "command.footerNavigate": "↑↓ navigasi",

@@ -93,6 +93,7 @@
     "posthog-js": "^1.363.5",
     "radix-ui": "^1.4.3",
     "react": "^19.2.0",
+    "react-data-grid": "7.0.0-beta.61",
     "react-day-picker": "^9.13.2",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",

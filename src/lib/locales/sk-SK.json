@@ -1,4 +1,5 @@
 {
+  "tree.createChild": "Nová podradená poznámka",
   "command.noMatches": "Žiadne zodpovedajúce príkazy",
   "command.palettePlaceholder": "Zadajte príkaz...",
   "command.footerNavigate": "↑↓ navigácia",

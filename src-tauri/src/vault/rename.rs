@@ -215,21 +215,7 @@ fn persist_staged_note(staged: NamedTempFile, target_path: &Path) -> Result<(), 
         .map_err(|e| format!("Failed to replace {}: {}", target_path.display(), e.error))
 }
 
-/// Carry any tree.yml overrides (ADR 0188) over to the new path. A no-op unless
-/// the entry actually had records; failures never fail the rename itself.
-fn sync_tree_key(vault: &Path, old_file: &Path, new_file: &Path) {
-    let (Ok(old_key), Ok(new_key)) = (old_file.strip_prefix(vault), new_file.strip_prefix(vault)) else {
-        return;
-    };
-    let old_key = old_key.to_string_lossy().replace('\\', "/");
-    let new_key = new_key.to_string_lossy().replace('\\', "/");
-    if let Err(error) = super::tree::rename_key(vault, &old_key, &new_key) {
-        log::warn!("tree.yml key sync failed for {old_key} -> {new_key}: {error}");
-    }
-}
-
-fn finalize_rename(vault: &Path, old_file: &Path, old_targets: &[&str], new_file: &Path) -> RenameResult {
-    sync_tree_key(vault, old_file, new_file);
+fn finalize_rename(vault: &Path, old_targets: &[&str], new_file: &Path) -> RenameResult {
     let new_path = new_file.to_string_lossy().to_string();
     let new_path_stem = to_path_stem(new_file, vault);
     let summary = update_wikilinks_in_vault(vault, old_targets, &new_path_stem, new_file);
@@ -383,7 +369,7 @@ pub fn rename_note(request: RenameNoteRequest<'_>) -> Result<RenameResult, Strin
         )?;
     let old_path_stem = to_path_stem(old_file, vault);
     let old_targets = collect_legacy_wikilink_targets(&loaded.title, &old_path_stem);
-    Ok(finalize_rename(vault, old_file, &old_targets, committed.new_file()))
+    Ok(finalize_rename(vault, &old_targets, committed.new_file()))
 }
 
 /// Rename only the file path stem while preserving title/frontmatter content.
@@ -425,7 +411,7 @@ pub fn rename_note_filename(
 
     let old_path_stem = to_path_stem(old_file, vault);
     let old_targets = collect_legacy_wikilink_targets(&old_title, &old_path_stem);
-    Ok(finalize_rename(vault, old_file, &old_targets, committed.new_file()))
+    Ok(finalize_rename(vault, &old_targets, committed.new_file()))
 }
 
 /// Move a note into a different folder while preserving its filename and content.
@@ -471,7 +457,7 @@ pub fn move_note_to_folder(request: MoveNoteToFolderRequest<'_>) -> Result<Renam
 
     let old_path_stem = to_path_stem(old_file, vault);
     let old_targets = collect_legacy_wikilink_targets(&old_title, &old_path_stem);
-    Ok(finalize_rename(vault, old_file, &old_targets, committed.new_file()))
+    Ok(finalize_rename(vault, &old_targets, committed.new_file()))
 }
 
 /// Move a note into another workspace while preserving its vault-relative path.

@@ -50,6 +50,7 @@ import { MERMAID_BLOCK_TYPE, mermaidFenceSource } from '../utils/mermaidMarkdown
 import { TLDRAW_BLOCK_TYPE, TLDRAW_DEFAULT_HEIGHT } from '../utils/tldrawMarkdown'
 import { DRAWIO_BLOCK_TYPE, EMPTY_DRAWIO_SNAPSHOT } from '../utils/drawioMarkdown'
 import { EMPTY_SHEET_DOCUMENT, SHEET_BLOCK_TYPE } from '../utils/sheetMarkdown'
+import { EMPTY_VIEW_TABLE_SOURCE, VIEW_TABLE_BLOCK_TYPE } from '../utils/viewTableMarkdown'
 import { MINDMAP_BLOCK_TYPE, createMindmapSnapshot } from '../utils/mindmapData'
 import { translate } from '../lib/i18n'
 import { calloutIconForType } from './calloutIcons'
@@ -453,6 +454,7 @@ export function getTolariaSlashMenuItems(
       createBlockSlashMenuItem(editor, { key: 'mindmap', title: translate('zh-CN', 'mindmap.insert'), aliases: ['mindmap', 'mind map', '脑图', '思维导图', 'naotu'], type: MINDMAP_BLOCK_TYPE, props: { snapshot: createMindmapSnapshot(translate('zh-CN', 'mindmap.root'), translate('zh-CN', 'mindmap.branch')) }, eventName: 'editor_mindmap_inserted' }),
       createBlockSlashMenuItem(editor, { key: 'drawio', title: translate('zh-CN', 'drawio.insert'), aliases: ['drawio', 'draw.io', '流程图', '绘图', 'diagram'], type: DRAWIO_BLOCK_TYPE, props: { snapshot: EMPTY_DRAWIO_SNAPSHOT }, eventName: 'editor_drawio_inserted' }),
       createBlockSlashMenuItem(editor, { key: 'sheet', title: translate('zh-CN', 'sheet.insert'), aliases: ['sheet', 'spreadsheet', 'excel', '表格', '电子表格', '工作表', 'biaoge'], type: SHEET_BLOCK_TYPE, props: { document: EMPTY_SHEET_DOCUMENT }, eventName: 'editor_sheet_inserted' }),
+      createBlockSlashMenuItem(editor, { key: 'view', title: translate('zh-CN', 'viewTable.insert'), aliases: ['view', 'database', 'db', 'data', '数据表', '数据库', '视图', 'shujuku'], type: VIEW_TABLE_BLOCK_TYPE, props: { source: EMPTY_VIEW_TABLE_SOURCE }, eventName: 'editor_view_table_block_inserted' }),
       ...dateTimeItems,
     ],
   )

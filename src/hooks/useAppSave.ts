@@ -9,6 +9,7 @@ import { createTranslator, type AppLocale } from '../lib/i18n'
 import { canWritePathToVault } from '../utils/vaultPathContainment'
 import { vaultPathForEntry } from '../utils/workspaces'
 import { notePathFilename, notePathsMatch } from '../utils/notePathIdentity'
+import { performRename } from './useNoteRename'
 
 interface TabState {
   entry: VaultEntry
@@ -49,6 +50,9 @@ function resolveLatestPath(renamedPaths: RenamedPathMap, path: string): string {
 
 function trackRenamedPath(renamedPaths: RenamedPathMap, oldPath: string, newPath: string): void {
   if (notePathsMatch(oldPath, newPath)) return
+  for (const trackedPath of renamedPaths.keys()) {
+    if (notePathsMatch(trackedPath, newPath)) renamedPaths.delete(trackedPath)
+  }
   const latestPath = resolveLatestPath(renamedPaths, newPath)
   for (const [trackedOldPath, trackedNewPath] of renamedPaths) {
     if (notePathsMatch(trackedNewPath, oldPath)) renamedPaths.set(trackedOldPath, latestPath)
@@ -113,13 +117,17 @@ function schedulableUntitledRenameTitle({
   path,
   content,
   initialH1AutoRenameEnabled,
+  previousTitle,
 }: {
   path: string
   content: string
   initialH1AutoRenameEnabled: boolean
+  previousTitle: string | null | undefined
 }): string | null {
-  if (!isTauri() || !initialH1AutoRenameEnabled || !isUntitledRenameCandidate(path)) return null
-  return extractH1TitleFromContent(content)
+  if (!isTauri() || !path.toLowerCase().endsWith('.md')) return null
+  const title = extractH1TitleFromContent(content)
+  if (isUntitledRenameCandidate(path)) return initialH1AutoRenameEnabled ? title : null
+  return previousTitle !== undefined && title !== previousTitle ? title : null
 }
 
 function matchingPendingRename({
@@ -272,6 +280,7 @@ function useRenamePathRegistry() {
 }
 
 function useUntitledRenameExecutor(options: {
+  savedTitlesRef: MutableRefObject<Map<string, string | null>>
   resolvedPath: string
   tabsRef: MutableRefObject<TabState[]>
   activeTabPathRef: MutableRefObject<string | null>
@@ -283,7 +292,7 @@ function useUntitledRenameExecutor(options: {
   renamedPathsRef: MutableRefObject<RenamedPathMap>
   inFlightUntitledRenameRef: MutableRefObject<InFlightRenameMap>
 }) {
-  const { resolvedPath, tabsRef, activeTabPathRef, setTabs, handleSwitchTab, replaceEntry, loadModifiedFiles, onInternalVaultWrite, renamedPathsRef, inFlightUntitledRenameRef } = options
+  const { savedTitlesRef, resolvedPath, tabsRef, activeTabPathRef, setTabs, handleSwitchTab, replaceEntry, loadModifiedFiles, onInternalVaultWrite, renamedPathsRef, inFlightUntitledRenameRef } = options
   return useCallback(
     async (path: string) => {
     const existingRename = inFlightUntitledRenameRef.current.get(path)
@@ -292,13 +301,23 @@ function useUntitledRenameExecutor(options: {
     const renamePromise = (async () => {
       try {
         const renameVaultPath = vaultPathForTabPath(tabsRef.current, path, resolvedPath)
-          const result = await invoke<{
-            new_path: string
-            updated_files: number
-          } | null>('auto_rename_untitled', {
-          args: { vaultPath: renameVaultPath, notePath: path },
-        })
+        const content = await invoke<string>('get_note_content', { path })
+        const title = extractH1TitleFromContent(content)
+        if (!title) return path
+        const result = isUntitledRenameCandidate(path)
+          ? await invoke<{ new_path: string; updated_files: number } | null>('auto_rename_untitled', {
+              args: { vaultPath: renameVaultPath, notePath: path },
+            })
+          : await performRename({
+              path,
+              newTitle: title,
+              oldTitle: savedTitlesRef.current.get(path) ?? undefined,
+              vaultPath: renameVaultPath,
+            })
         if (!result) return path
+        savedTitlesRef.current.delete(path)
+        savedTitlesRef.current.set(result.new_path, title)
+        if (notePathsMatch(path, result.new_path)) return path
         onInternalVaultWrite?.(path)
         onInternalVaultWrite?.(result.new_path)
         trackRenamedPath(renamedPathsRef.current, path, result.new_path)
@@ -325,6 +344,7 @@ function useUntitledRenameExecutor(options: {
     },
     [
     resolvedPath,
+    savedTitlesRef,
     tabsRef,
     activeTabPathRef,
     setTabs,
@@ -341,9 +361,11 @@ function useUntitledRenameExecutor(options: {
 function useUntitledRenameScheduler({
   executeUntitledRename,
   initialH1AutoRenameEnabled,
+  savedTitlesRef,
 }: {
   executeUntitledRename: (path: string) => Promise<boolean>
   initialH1AutoRenameEnabled: boolean
+  savedTitlesRef: MutableRefObject<Map<string, string | null>>
 }) {
   const pendingUntitledRenameRef = useRef<PendingUntitledRename | null>(null)
 
@@ -374,6 +396,7 @@ function useUntitledRenameScheduler({
         path,
         content,
         initialH1AutoRenameEnabled,
+        previousTitle: savedTitlesRef.current.get(path),
       })
     if (!title) {
       cancelPendingUntitledRename(path)
@@ -389,7 +412,7 @@ function useUntitledRenameScheduler({
       },
     })
     },
-    [cancelPendingUntitledRename, executeUntitledRename, initialH1AutoRenameEnabled],
+    [cancelPendingUntitledRename, executeUntitledRename, initialH1AutoRenameEnabled, savedTitlesRef],
   )
 
   const refreshPendingUntitledRename = useCallback(
@@ -421,9 +444,16 @@ function useUntitledRenameCoordinator(options: {
   initialH1AutoRenameEnabled: boolean
 }) {
   const { resolvedPath, tabsRef, activeTabPathRef, setTabs, handleSwitchTab, replaceEntry, loadModifiedFiles, onInternalVaultWrite, initialH1AutoRenameEnabled } = options
+  const savedTitlesRef = useRef(new Map<string, string | null>())
+  for (const tab of tabsRef.current) {
+    if (!savedTitlesRef.current.has(tab.entry.path)) {
+      savedTitlesRef.current.set(tab.entry.path, extractH1TitleFromContent(tab.content) ?? tab.entry.title)
+    }
+  }
   const { renamedPathsRef, inFlightUntitledRenameRef, registerRenamedPath, resolveCurrentPath, resolvePathBeforeSave } =
     useRenamePathRegistry()
   const executeUntitledRename = useUntitledRenameExecutor({
+    savedTitlesRef,
     resolvedPath,
     tabsRef,
     activeTabPathRef,
@@ -442,6 +472,7 @@ function useUntitledRenameCoordinator(options: {
         refreshPendingUntitledRename,
         scheduleUntitledRename,
       } = useUntitledRenameScheduler({
+        savedTitlesRef,
         executeUntitledRename,
         initialH1AutoRenameEnabled,
       })

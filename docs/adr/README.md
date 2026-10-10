@@ -240,5 +240,7 @@ proposed → active → superseded
 | [0185](0185-note-tree-frontmatter-hierarchy.md) | Sidebar note hierarchy in Markdown frontmatter | superseded → [0188](0188-vault-tree-structure-in-tolaria-config.md) |
 | [0186](0186-offline-drawio-editor.md) | Offline draw.io editor | active |
 | [0187](0187-embedded-drawio-markdown-block.md) | Embedded draw.io Markdown blocks | active |
-| [0188](0188-vault-tree-structure-in-tolaria-config.md) | Vault tree structure and icons in tolaria/config/tree.yml | active |
+| [0188](0188-vault-tree-structure-in-tolaria-config.md) | Vault tree structure and icons in tolaria/config/tree.yml | superseded → [0190](0190-markdown-only-portable-note-tree.md) |
+| [0190](0190-markdown-only-portable-note-tree.md) | Markdown-only portable note tree | active |
 | [0192](0192-embedded-spreadsheet-markdown-block.md) | Embedded spreadsheet Markdown blocks | active |
+| [0193](0193-inline-data-table-markdown-block.md) | Inline data-table blocks | active |

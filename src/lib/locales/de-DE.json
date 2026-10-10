@@ -1,4 +1,5 @@
 {
+  "tree.createChild": "Neue Unternotiz",
   "command.noMatches": "Keine passenden Befehle",
   "command.palettePlaceholder": "Geben Sie einen Befehl ein …",
   "command.footerNavigate": "↑↓ navigieren",

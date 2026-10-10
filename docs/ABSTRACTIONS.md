@@ -394,13 +394,18 @@ Tolaria separates **display title** from the file identifier:
 
 ### Title Surface (UI)
 
+Inline data-table option colors share their theme palette across the table and portalled `view-table__menu` surfaces. Color edits register existing cell values as column options atomically with their color, so the serialized fence retains the choice and its palette name together.
+
 The BlockNote body is the only title editing surface:
 
 - The first H1 is the canonical display title.
 - There is no separate title row above the editor, even when a note has no H1.
 - Notes without an H1 show the editor body and placeholder only.
 - Legacy no-H1 notes whose display title differs from the filename show that title as read-only breadcrumb context beside the editable filename, so referenced notes remain identifiable without raw mode.
-- Filename changes are explicit breadcrumb actions, not a dedicated title-input side effect.
+- Saving a changed first H1 also renames an existing Markdown note through the crash-safe rename pipeline, updates wikilinks, and replaces its tree/tab path. Untitled drafts still respect the installation-local initial auto-rename preference. Body-only edits preserve custom filenames; blank headings do not trigger renames. The rename debounce is 2.5 seconds after persistence, and explicit save settles pending renames immediately.
+- Breadcrumb actions remain available for explicit filename changes independently of the heading.
+
+The note-tree context menu closes on an outside pointer/mouse press or Escape through `useDismissableSidebarLayer`. Its new-child action uses the immediate note-creation queue with a parent path: the child is saved with `_parent_note` and `_order` in its Markdown frontmatter before opening it. The existing `note_created` event records `creation_path: tree_context_menu` without note content or paths.
 
 ### Sidebar Selection
 
@@ -419,7 +424,7 @@ type SidebarSelection =
 
 `SidebarSelection.kind === 'folder'` is a first-class navigation target, not just a visual highlight.
 
-- `NoteTree` is the primary sidebar navigation surface. It reads hierarchy from `tolaria/config/tree.yml` (ADR 0188), with legacy `_parent_note` fallback, and delegates open/drag-to-reparent to `App`; it never changes directory layout. Its hover/focus emoji button and right-click menu reuse `EmojiPicker` in a shadcn dialog, saving Unicode emoji via the bound vault-tree store using vault-relative paths. A tree icon overrides a legacy icon in this sidebar; an explicit empty string means hidden, while null means legacy fallback. Other note-title surfaces retain their existing frontmatter icon semantics. No custom-image/icon library is offered by the tree picker.
+- `NoteTree` is the primary sidebar navigation surface. Hierarchy, emoji and sibling position belong to each Markdown file through `_parent_note`, `_icon` and `_order` (ADR 0190). Missing positions are captured from the initial tree and persisted through the existing frontmatter callback; content saves, title changes and refreshes preserve them. New notes append, and reparenting preserves their saved order. The emoji picker also awaits the frontmatter callback. No sidecar loader, store or native tree.yml command remains.
 
 `EmojiPicker` progressively renders 64 Unicode emoji at a time, yielding an animation frame and a timed pause between interruptible updates. Category order and full-catalog search are preserved, with query changes starting a fresh batch sequence and unmount cancelling timers. Completed groups and existing buttons are memoized. `NoteTree` caches its filtered entries and hierarchy across picker-only state changes.
 

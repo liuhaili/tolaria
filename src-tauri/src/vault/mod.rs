@@ -17,7 +17,6 @@ mod rename;
 mod rename_transaction;
 mod title_sync;
 mod trash;
-mod tree;
 mod type_templates;
 #[cfg(test)]
 mod view_archived_contract_tests;
@@ -51,9 +50,6 @@ pub use rename::{
 };
 pub use title_sync::{sync_title_on_open, SyncAction};
 pub use trash::{batch_delete_notes, delete_note};
-pub use tree::{
-    prune_missing_nodes, read_vault_tree, write_vault_tree, VaultTree, VaultTreeNodeRecord,
-};
 pub use views::{
     delete_view, evaluate_view, save_view, scan_views, FilterCondition, FilterGroup, FilterNode,
     FilterOp, ViewDefinition, ViewFile,
